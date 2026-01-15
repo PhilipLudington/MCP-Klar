@@ -90,13 +90,13 @@
 
 **Milestone: Phase 2 Complete - Claude can explore existing Klar code**
 
-## Phase 11: Reference Index
+## Phase 11: Reference Index ✅
 
-- [ ] Implement `src/analysis/references.zig`
-- [ ] Track all usages during analysis
-- [ ] Index by symbol ID
-- [ ] Support incremental updates
-- [ ] Write reference index tests
+- [x] Implement `src/analysis/references.zig`
+- [x] Track all usages during analysis
+- [x] Index by symbol ID
+- [x] Support incremental updates
+- [x] Write reference index tests
 
 ## Phase 12: klar_references Tool
 

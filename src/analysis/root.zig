@@ -4,9 +4,9 @@
 
 pub const symbols = @import("symbols.zig");
 pub const builder = @import("builder.zig");
+pub const references = @import("references.zig");
 
-// TODO: Implement in Phase 9+
-// pub const references = @import("references.zig");
+// TODO: Implement in Phase 14+
 // pub const completion = @import("completion.zig");
 
 // Re-export main types.
@@ -25,7 +25,13 @@ pub const buildSymbolTable = builder.buildSymbolTable;
 pub const invalid_symbol = symbols.invalid_symbol;
 pub const invalid_scope = symbols.invalid_scope;
 
+pub const ReferenceIndex = references.ReferenceIndex;
+pub const ReferenceResult = references.ReferenceResult;
+pub const findReferences = references.findReferences;
+pub const freeReferenceResult = references.freeReferenceResult;
+
 test {
     _ = symbols;
     _ = builder;
+    _ = references;
 }

@@ -447,17 +447,22 @@ pub const SymbolTable = struct {
         return null;
     }
 
-    /// Get all references to a symbol.
-    pub fn getReferences(self: *const SymbolTable, symbol_id: SymbolId) []const SymbolReference {
-        // This is O(n), could be optimized with an index.
-        var count: usize = 0;
-        for (self.references.items) |ref| {
-            if (ref.symbol_id == symbol_id) count += 1;
-        }
-
-        // For now just return all references (caller must filter).
-        // A more efficient implementation would maintain per-symbol reference lists.
+    /// Get all references (unfiltered).
+    ///
+    /// For efficient per-symbol reference lookups, use `ReferenceIndex` from
+    /// the `references` module instead. Build an index with
+    /// `index.buildFromSymbolTable(table)` and then use
+    /// `index.getReferenceIndices(symbol_id)` for O(1) lookups.
+    pub fn getAllReferences(self: *const SymbolTable) []const SymbolReference {
         return self.references.items;
+    }
+
+    /// Get a reference by index.
+    pub fn getReference(self: *const SymbolTable, index: usize) ?SymbolReference {
+        if (index < self.references.items.len) {
+            return self.references.items[index];
+        }
+        return null;
     }
 
     /// Get all symbols in a scope.
