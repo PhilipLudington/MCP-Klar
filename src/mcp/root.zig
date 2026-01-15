@@ -4,6 +4,7 @@ pub const protocol = @import("protocol.zig");
 pub const transport = @import("transport.zig");
 pub const router = @import("router.zig");
 pub const server = @import("server.zig");
+pub const tools = @import("tools/root.zig");
 
 pub const Server = server.Server;
 pub const Request = protocol.Request;
@@ -14,4 +15,5 @@ test {
     _ = transport;
     _ = router;
     _ = server;
+    _ = tools;
 }

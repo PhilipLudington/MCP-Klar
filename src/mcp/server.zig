@@ -5,6 +5,7 @@ const Allocator = std.mem.Allocator;
 const protocol = @import("protocol.zig");
 const transport = @import("transport.zig");
 const router_mod = @import("router.zig");
+const tools = @import("tools/root.zig");
 const config = @import("config");
 const utils = @import("utils");
 
@@ -26,7 +27,7 @@ pub const Server = struct {
         };
 
         // Register tool handlers
-        try server.router.register("klar_check", handleKlarCheck);
+        try server.router.register("klar_check", tools.check.execute);
 
         return server;
     }
@@ -126,32 +127,6 @@ pub const Server = struct {
         try self.transport.writeMessage(json_str);
     }
 };
-
-/// Handler for klar_check tool.
-fn handleKlarCheck(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
-    _ = params;
-
-    // TODO: Implement actual type checking
-    // For now, return a placeholder response
-
-    var result = std.json.ObjectMap.init(allocator);
-    try result.put("success", .{ .bool = true });
-
-    const diagnostics = std.json.Array.init(allocator);
-    try result.put("diagnostics", .{ .array = diagnostics });
-    try result.put("summary", .{ .string = "0 errors, 0 warnings" });
-
-    var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
-    try content_obj.put("text", .{ .string = "Check passed: 0 errors, 0 warnings" });
-    try content_arr.append(.{ .object = content_obj });
-
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-
-    return .{ .object = outer };
-}
 
 test "Server init/deinit" {
     var server = try Server.init(std.testing.allocator);

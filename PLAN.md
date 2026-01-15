@@ -52,13 +52,13 @@
 - [x] Collect diagnostics during type checking
 - [x] Write type checker tests
 
-## Phase 7: klar_check Tool (MVP)
+## Phase 7: klar_check Tool (MVP) ✅
 
-- [ ] Implement `src/mcp/tools/check.zig`
-- [ ] Parse file and run type checker
-- [ ] Format diagnostics as JSON response
-- [ ] Handle `content` parameter for unsaved buffers
-- [ ] Write integration tests for klar_check
+- [x] Implement `src/mcp/tools/check.zig`
+- [x] Parse file and run type checker
+- [x] Format diagnostics as JSON response
+- [x] Handle `content` parameter for unsaved buffers
+- [x] Write integration tests for klar_check
 - [ ] Test end-to-end with Claude Code
 
 **Milestone: MVP - Claude can validate Klar code snippets**
