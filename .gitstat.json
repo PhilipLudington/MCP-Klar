@@ -2,13 +2,19 @@
   "name": "mcp-klar",
   "description": "Zig-based MCP server providing Klar language intelligence to Claude Code",
   "version": "0.1.0",
-  "build": {
-    "command": "zig build",
-    "artifact": "zig-out/bin/mcp-klar"
-  },
-  "test": {
-    "command": "zig build test",
-    "framework": "zig-test"
-  },
-  "plan": "PLAN.md"
+  "plan": "PLAN.md",
+  "tests": [
+    {
+      "name": "Unit Tests",
+      "resultsFile": ".test-results.json",
+      "command": "./run-tests.sh"
+    }
+  ],
+  "builds": [
+    {
+      "name": "Debug Build",
+      "resultsFile": ".build-results.json",
+      "command": "./build.sh"
+    }
+  ]
 }

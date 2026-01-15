@@ -2,3 +2,7 @@
 zig-out/
 *.o
 .DS_Store
+
+# GitStat results
+.test-results.json
+.build-results.json
