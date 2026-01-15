@@ -80,13 +80,13 @@
 - [x] Handle edge cases (invalid position, no symbol)
 - [x] Write hover tool tests
 
-## Phase 10: klar_goto_definition Tool
+## Phase 10: klar_goto_definition Tool ✅
 
-- [ ] Implement `src/mcp/tools/definition.zig`
-- [ ] Find symbol at position
-- [ ] Return definition file, line, column, kind, preview
-- [ ] Handle multi-definition cases (e.g., trait methods)
-- [ ] Write go-to-definition tests
+- [x] Implement `src/mcp/tools/definition.zig`
+- [x] Find symbol at position
+- [x] Return definition file, line, column, kind, preview
+- [x] Handle multi-definition cases (e.g., trait methods)
+- [x] Write go-to-definition tests
 
 **Milestone: Phase 2 Complete - Claude can explore existing Klar code**
 
