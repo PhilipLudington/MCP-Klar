@@ -106,14 +106,14 @@
 - [x] Support `include_definition` parameter
 - [x] Write references tool tests
 
-## Phase 13: klar_symbols Tool
+## Phase 13: klar_symbols Tool ✅
 
-- [ ] Implement `src/mcp/tools/symbols.zig`
-- [ ] List all symbols in a file
-- [ ] Support `kind` filter parameter
-- [ ] Include nested children (fields, variants)
-- [ ] Return visibility and type info
-- [ ] Write symbols tool tests
+- [x] Implement `src/mcp/tools/symbols.zig`
+- [x] List all symbols in a file
+- [x] Support `kind` filter parameter
+- [x] Include nested children (fields, variants)
+- [x] Return visibility and type info
+- [x] Write symbols tool tests
 
 **Milestone: Phase 3 Complete - Claude can understand code structure**
 
