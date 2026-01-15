@@ -5,6 +5,7 @@
 const std = @import("std");
 const mcp = @import("mcp");
 const config = @import("config");
+const build_options = @import("build_options");
 
 const log = std.log.scoped(.main);
 
@@ -13,11 +14,18 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    if (config.enable_logging) {
+    // Load runtime configuration (environment variables and klar.json)
+    var runtime_config = try config.RuntimeConfig.init(allocator);
+    defer runtime_config.deinit();
+
+    if (build_options.enable_logging or runtime_config.verbose) {
         log.info("Klar MCP Server starting...", .{});
+        if (runtime_config.getStdPath()) |std_path| {
+            log.info("Standard library path: {s}", .{std_path});
+        }
     }
 
-    var server = try mcp.Server.init(allocator);
+    var server = try mcp.Server.init(allocator, &runtime_config);
     defer server.deinit();
 
     try server.run();

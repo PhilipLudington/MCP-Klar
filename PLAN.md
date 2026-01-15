@@ -169,14 +169,23 @@
 - `klar://project/structure` scans current directory for `.kl` files and builds a tree
 - Resources capability advertised during MCP initialization
 
-## Phase 18: Configuration & Polish
+## Phase 18: Configuration & Polish ✅
 
-- [ ] Implement `klar.json` project configuration parsing
-- [ ] Support `KLAR_STD_PATH` environment variable
-- [ ] Implement graceful error handling (never crash)
-- [ ] Add comprehensive error messages
-- [ ] Write end-to-end integration tests
-- [ ] Document installation in README
+- [x] Implement `klar.json` project configuration parsing
+- [x] Support `KLAR_STD_PATH` environment variable
+- [x] Implement graceful error handling (never crash)
+- [x] Add comprehensive error messages
+- [x] Write end-to-end integration tests
+- [x] Document installation in README
+
+**Implementation notes:**
+- Created `src/config.zig` with `RuntimeConfig` struct for runtime configuration
+- Environment variable support: `KLAR_STD_PATH` and `KLAR_VERBOSE`
+- `klar.json` parsing with std_path, project_root, source_dirs, verbose options
+- Configuration precedence: env vars > klar.json > defaults
+- Server main loop catches errors and continues serving (never crashes)
+- Improved error messages include tool/resource names and error context
+- Integration tests in `test/integration_test.zig` covering MCP lifecycle, error handling, config
 
 ## Phase 19: Standard Library
 

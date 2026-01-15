@@ -7,11 +7,13 @@ const transport = @import("transport.zig");
 const router_mod = @import("router.zig");
 const tools = @import("tools/root.zig");
 const resources = @import("resources/root.zig");
+const build_options = @import("build_options");
 const config = @import("config");
 const utils = @import("utils");
 const analysis = @import("analysis");
 
 const DocumentCache = analysis.DocumentCache;
+const RuntimeConfig = config.RuntimeConfig;
 
 const log = std.log.scoped(.server);
 
@@ -25,13 +27,17 @@ pub const Server = struct {
     /// Document cache for parsed and analyzed files.
     cache: DocumentCache,
 
-    pub fn init(allocator: Allocator) !Server {
+    /// Runtime configuration.
+    runtime_config: *const RuntimeConfig,
+
+    pub fn init(allocator: Allocator, runtime_config: *const RuntimeConfig) !Server {
         var server = Server{
             .allocator = allocator,
             .transport = transport.StdioTransport.init(allocator),
             .router = router_mod.Router.init(allocator),
             .running = false,
             .cache = DocumentCache.init(allocator),
+            .runtime_config = runtime_config,
         };
 
         // Register tool handlers
@@ -77,22 +83,50 @@ pub const Server = struct {
     }
 
     /// Main server loop.
+    /// This loop is designed to be robust - individual message errors
+    /// are logged but don't crash the server.
     pub fn run(self: *Server) !void {
         self.running = true;
 
-        if (config.enable_logging) {
+        if (build_options.enable_logging or self.runtime_config.verbose) {
             log.info("Server running, waiting for messages...", .{});
         }
 
         while (self.running) {
-            const message = try self.transport.readMessage();
+            // Read message - EOF is handled gracefully
+            const message = self.transport.readMessage() catch |err| {
+                // Transport error - log and continue if possible
+                log.err("Transport read error: {s}", .{@errorName(err)});
+                if (err == error.EndOfStream or err == error.BrokenPipe) {
+                    break;
+                }
+                continue;
+            };
+
             if (message == null) {
-                // EOF
+                // EOF - clean shutdown
                 break;
             }
 
-            try self.handleMessage(message.?);
+            // Handle message - errors are caught and don't crash the server
+            self.handleMessage(message.?) catch |err| {
+                log.err("Message handling error: {s}", .{@errorName(err)});
+                // Try to send an error response, but don't fail the loop if we can't
+                self.sendErrorResponse("Internal server error") catch |send_err| {
+                    log.err("Failed to send error response: {s}", .{@errorName(send_err)});
+                };
+            };
         }
+
+        if (build_options.enable_logging or self.runtime_config.verbose) {
+            log.info("Server shutting down", .{});
+        }
+    }
+
+    /// Send a generic error response (used for internal errors).
+    fn sendErrorResponse(self: *Server, message: []const u8) !void {
+        const response = protocol.errorResponse(null, protocol.ErrorCode.internal_error, message);
+        try self.sendResponse(response);
     }
 
     fn handleMessage(self: *Server, message: []const u8) !void {
@@ -168,6 +202,9 @@ pub const Server = struct {
 };
 
 test "Server init/deinit" {
-    var server = try Server.init(std.testing.allocator);
+    var runtime_config = try RuntimeConfig.init(std.testing.allocator);
+    defer runtime_config.deinit();
+
+    var server = try Server.init(std.testing.allocator, &runtime_config);
     defer server.deinit();
 }

@@ -1,0 +1,16 @@
+// Klar file with intentional errors for testing diagnostics.
+
+fn broken(x: i32) -> String {
+    // Type error: returning i32 where String expected
+    x + 1
+}
+
+fn undefined_var() -> i32 {
+    // Error: undefined variable
+    unknown_variable
+}
+
+struct BadStruct {
+    field1: i32,
+    field1: String  // Duplicate field
+}

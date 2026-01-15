@@ -1,0 +1,32 @@
+// Simple Klar test file for integration testing.
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn greet(name: String) -> String {
+    "Hello, " + name
+}
+
+struct Point {
+    x: f64,
+    y: f64
+}
+
+impl Point {
+    fn new(x: f64, y: f64) -> Point {
+        Point { x: x, y: y }
+    }
+
+    fn origin() -> Point {
+        Point::new(0.0, 0.0)
+    }
+}
+
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+let pi: f64 = 3.14159

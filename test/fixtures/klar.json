@@ -1,0 +1,6 @@
+{
+    "std_path": "/usr/local/klar/std",
+    "project_root": ".",
+    "source_dirs": ["src", "lib"],
+    "verbose": false
+}

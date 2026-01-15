@@ -20,7 +20,14 @@ pub fn build(b: *std.Build) void {
 
     const options = b.addOptions();
     options.addOption(bool, "enable_logging", enable_logging);
-    const config_mod = options.createModule();
+    const build_options_mod = options.createModule();
+
+    // Runtime configuration module
+    const config_mod = b.addModule("config", .{
+        .root_source_file = b.path("src/config.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
 
     // Utility module
     const utils_mod = b.addModule("utils", .{
@@ -60,6 +67,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "compiler", .module = compiler_mod },
             .{ .name = "analysis", .module = analysis_mod },
             .{ .name = "config", .module = config_mod },
+            .{ .name = "build_options", .module = build_options_mod },
         },
     });
 
@@ -76,6 +84,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "analysis", .module = analysis_mod },
                 .{ .name = "mcp", .module = mcp_mod },
                 .{ .name = "config", .module = config_mod },
+                .{ .name = "build_options", .module = build_options_mod },
             },
         }),
     });
@@ -103,10 +112,35 @@ pub fn build(b: *std.Build) void {
     const mcp_tests = b.addTest(.{
         .root_module = mcp_mod,
     });
+    const config_tests = b.addTest(.{
+        .root_module = config_mod,
+    });
+
+    // Integration tests
+    const integration_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("test/integration_test.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "mcp", .module = mcp_mod },
+                .{ .name = "config", .module = config_mod },
+                .{ .name = "utils", .module = utils_mod },
+                .{ .name = "compiler", .module = compiler_mod },
+                .{ .name = "analysis", .module = analysis_mod },
+            },
+        }),
+    });
 
     const test_step = b.step("test", "Run all tests");
     test_step.dependOn(&b.addRunArtifact(utils_tests).step);
     test_step.dependOn(&b.addRunArtifact(compiler_tests).step);
     test_step.dependOn(&b.addRunArtifact(analysis_tests).step);
     test_step.dependOn(&b.addRunArtifact(mcp_tests).step);
+    test_step.dependOn(&b.addRunArtifact(config_tests).step);
+    test_step.dependOn(&b.addRunArtifact(integration_tests).step);
+
+    // Integration test step (separate)
+    const integration_test_step = b.step("test-integration", "Run integration tests only");
+    integration_test_step.dependOn(&b.addRunArtifact(integration_tests).step);
 }

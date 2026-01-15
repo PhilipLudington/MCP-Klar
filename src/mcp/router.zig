@@ -228,8 +228,10 @@ pub const Router = struct {
         };
 
         const result = handler(self.allocator, arguments) catch |err| {
-            var buf: [256]u8 = undefined;
-            const msg = std.fmt.bufPrint(&buf, "Tool error: {s}", .{@errorName(err)}) catch "Tool error";
+            // Build comprehensive error message
+            var buf: [512]u8 = undefined;
+            const msg = std.fmt.bufPrint(&buf, "Tool '{s}' failed: {s}", .{ name, @errorName(err) }) catch
+                std.fmt.bufPrint(buf[0..256], "Tool error: {s}", .{@errorName(err)}) catch "Tool error";
             return protocol.errorResponse(null, ErrorCode.internal_error, msg);
         };
 
@@ -273,8 +275,10 @@ pub const Router = struct {
         };
 
         const result = handler(self.allocator, uri) catch |err| {
-            var buf: [256]u8 = undefined;
-            const msg = std.fmt.bufPrint(&buf, "Resource error: {s}", .{@errorName(err)}) catch "Resource error";
+            // Build comprehensive error message with URI context
+            var buf: [512]u8 = undefined;
+            const msg = std.fmt.bufPrint(&buf, "Resource '{s}' failed: {s}", .{ uri, @errorName(err) }) catch
+                std.fmt.bufPrint(buf[0..256], "Resource error: {s}", .{@errorName(err)}) catch "Resource error";
             return protocol.errorResponse(null, ErrorCode.internal_error, msg);
         };
 
