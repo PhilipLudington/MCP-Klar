@@ -32,14 +32,14 @@
 - [x] Handle string literals, numbers, identifiers, keywords, operators
 - [x] Write comprehensive lexer tests
 
-## Phase 5: Compiler Frontend - Parser
+## Phase 5: Compiler Frontend - Parser ✅
 
-- [ ] Define `src/compiler/ast.zig` (AST node types)
-- [ ] Implement `src/compiler/parser.zig` - expression parsing
-- [ ] Implement statement parsing (let, return, if, while, for)
-- [ ] Implement declaration parsing (fn, struct, enum, trait, type alias)
-- [ ] Implement module/import parsing
-- [ ] Write parser tests with fixture files
+- [x] Define `src/compiler/ast.zig` (AST node types)
+- [x] Implement `src/compiler/parser.zig` - expression parsing
+- [x] Implement statement parsing (let, return, if, while, for)
+- [x] Implement declaration parsing (fn, struct, enum, trait, type alias)
+- [x] Implement module/import parsing
+- [x] Write parser tests with fixture files
 
 ## Phase 6: Compiler Frontend - Type Checker
 
