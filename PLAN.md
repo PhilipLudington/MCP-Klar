@@ -72,13 +72,13 @@
 - [x] Support nested scopes
 - [x] Write symbol table tests
 
-## Phase 9: klar_hover Tool
+## Phase 9: klar_hover Tool ✅
 
-- [ ] Implement `src/mcp/tools/hover.zig`
-- [ ] Look up symbol at position
-- [ ] Return type, kind, documentation, definition location
-- [ ] Handle edge cases (invalid position, no symbol)
-- [ ] Write hover tool tests
+- [x] Implement `src/mcp/tools/hover.zig`
+- [x] Look up symbol at position
+- [x] Return type, kind, documentation, definition location
+- [x] Handle edge cases (invalid position, no symbol)
+- [x] Write hover tool tests
 
 ## Phase 10: klar_goto_definition Tool
 
