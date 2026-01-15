@@ -63,14 +63,14 @@
 
 **Milestone: MVP - Claude can validate Klar code snippets**
 
-## Phase 8: Symbol Table & Analysis
+## Phase 8: Symbol Table & Analysis ✅
 
-- [ ] Implement `src/analysis/symbols.zig` (Symbol, TypeInfo structs)
-- [ ] Build symbol table during type checking
-- [ ] Map positions to symbols
-- [ ] Track definition locations
-- [ ] Support nested scopes
-- [ ] Write symbol table tests
+- [x] Implement `src/analysis/symbols.zig` (Symbol, TypeInfo structs)
+- [x] Build symbol table during type checking
+- [x] Map positions to symbols
+- [x] Track definition locations
+- [x] Support nested scopes
+- [x] Write symbol table tests
 
 ## Phase 9: klar_hover Tool
 
