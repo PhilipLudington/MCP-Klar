@@ -41,16 +41,16 @@
 - [x] Implement module/import parsing
 - [x] Write parser tests with fixture files
 
-## Phase 6: Compiler Frontend - Type Checker
+## Phase 6: Compiler Frontend - Type Checker ✅
 
-- [ ] Define `src/compiler/types.zig` (type representation)
-- [ ] Implement `src/compiler/checker.zig` - basic type checking
-- [ ] Implement type inference for variables
-- [ ] Implement function signature checking
-- [ ] Implement struct/enum type checking
-- [ ] Implement generic type handling
-- [ ] Collect diagnostics during type checking
-- [ ] Write type checker tests
+- [x] Define `src/compiler/types.zig` (type representation)
+- [x] Implement `src/compiler/checker.zig` - basic type checking
+- [x] Implement type inference for variables
+- [x] Implement function signature checking
+- [x] Implement struct/enum type checking
+- [x] Implement generic type handling
+- [x] Collect diagnostics during type checking
+- [x] Write type checker tests
 
 ## Phase 7: klar_check Tool (MVP)
 
