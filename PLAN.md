@@ -98,13 +98,13 @@
 - [x] Support incremental updates
 - [x] Write reference index tests
 
-## Phase 12: klar_references Tool
+## Phase 12: klar_references Tool ✅
 
-- [ ] Implement `src/mcp/tools/references.zig`
-- [ ] Find all usages of symbol at position
-- [ ] Return file, line, column, context for each reference
-- [ ] Support `include_definition` parameter
-- [ ] Write references tool tests
+- [x] Implement `src/mcp/tools/references.zig`
+- [x] Find all usages of symbol at position
+- [x] Return file, line, column, context for each reference
+- [x] Support `include_definition` parameter
+- [x] Write references tool tests
 
 ## Phase 13: klar_symbols Tool
 
