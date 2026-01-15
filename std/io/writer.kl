@@ -1,0 +1,316 @@
+// Klar Standard Library - Writer
+//
+// The Writer trait and related types for writing bytes.
+
+/// A trait for objects that can write bytes.
+pub trait Writer {
+    /// Write a buffer into this writer.
+    /// Returns how many bytes were written.
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize>
+
+    /// Flush this output stream, ensuring all buffered data is written.
+    fn flush(&mut self) -> IoResult<()>
+
+    /// Write all bytes from the buffer.
+    fn write_all(&mut self, buf: &[u8]) -> IoResult<()> {
+        let mut written: usize = 0
+        while written < buf.len() {
+            match self.write(&buf[written..]) {
+                Ok(0) => return Err(Error::new(ErrorKind::Other, "write returned zero")),
+                Ok(n) => written = written + n,
+                Err(e) => return Err(e)
+            }
+        }
+        Ok(())
+    }
+
+    /// Write a formatted string to this writer.
+    fn write_fmt(&mut self, args: Arguments) -> IoResult<()> {
+        let s = format(args)
+        self.write_all(s.as_bytes())
+    }
+
+    /// Create a "by reference" adapter for this instance of Writer.
+    fn by_ref(&mut self) -> &mut Self {
+        self
+    }
+
+    /// Transform this Writer into a BufWriter.
+    fn buffered(self) -> BufWriter<Self> {
+        BufWriter::new(self)
+    }
+}
+
+/// A buffered writer.
+pub struct BufWriter<W> {
+    inner: W,
+    buf: List<u8>,
+    capacity: usize
+}
+
+impl<W: Writer> BufWriter<W> {
+    /// Creates a new BufWriter with a default buffer capacity.
+    pub fn new(inner: W) -> BufWriter<W> {
+        BufWriter::with_capacity(8192, inner)
+    }
+
+    /// Creates a new BufWriter with a specified capacity.
+    pub fn with_capacity(capacity: usize, inner: W) -> BufWriter<W> {
+        BufWriter {
+            inner: inner,
+            buf: List::with_capacity(capacity),
+            capacity: capacity
+        }
+    }
+
+    /// Gets a reference to the underlying writer.
+    pub fn get_ref(&self) -> &W {
+        &self.inner
+    }
+
+    /// Gets a mutable reference to the underlying writer.
+    pub fn get_mut(&mut self) -> &mut W {
+        &mut self.inner
+    }
+
+    /// Returns the number of bytes in the buffer.
+    pub fn buffer(&self) -> &[u8] {
+        self.buf.as_slice()
+    }
+
+    /// Returns the capacity of the internal buffer.
+    pub fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    /// Consumes this BufWriter, returning the underlying writer.
+    /// Any buffered data is written first.
+    pub fn into_inner(mut self) -> Result<W, IntoInnerError<BufWriter<W>>> {
+        match self.flush_buf() {
+            Ok(()) => Ok(self.inner),
+            Err(e) => Err(IntoInnerError { error: e, buffer: self })
+        }
+    }
+
+    fn flush_buf(&mut self) -> IoResult<()> {
+        let mut written: usize = 0
+        let len = self.buf.len()
+
+        while written < len {
+            match self.inner.write(&self.buf.as_slice()[written..]) {
+                Ok(0) => return Err(Error::new(ErrorKind::Other, "write returned zero")),
+                Ok(n) => written = written + n,
+                Err(e) => {
+                    // Remove the written bytes from the buffer
+                    for _ in 0..written {
+                        self.buf.remove(0)
+                    }
+                    return Err(e)
+                }
+            }
+        }
+
+        self.buf.clear()
+        Ok(())
+    }
+}
+
+impl<W: Writer> Writer for BufWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        // If the write is larger than the buffer, flush and write directly
+        if buf.len() >= self.capacity {
+            self.flush_buf()?
+            return self.inner.write(buf)
+        }
+
+        // If the buffer would overflow, flush first
+        if self.buf.len() + buf.len() > self.capacity {
+            self.flush_buf()?
+        }
+
+        // Add to buffer
+        for b in buf {
+            self.buf.push(*b)
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.flush_buf()?
+        self.inner.flush()
+    }
+}
+
+impl<W: Writer> Drop for BufWriter<W> {
+    fn drop(&mut self) {
+        // Try to flush on drop, ignore errors
+        let _ = self.flush_buf()
+    }
+}
+
+/// Error returned when consuming a BufWriter fails.
+pub struct IntoInnerError<W> {
+    error: IoError,
+    buffer: W
+}
+
+impl<W> IntoInnerError<W> {
+    /// Returns the error that caused the failure.
+    pub fn error(&self) -> &IoError {
+        &self.error
+    }
+
+    /// Returns the buffered writer that failed to flush.
+    pub fn into_inner(self) -> W {
+        self.buffer
+    }
+}
+
+/// A writer that keeps track of how many bytes have been written.
+pub struct CountingWriter<W> {
+    inner: W,
+    count: usize
+}
+
+impl<W: Writer> CountingWriter<W> {
+    /// Creates a new CountingWriter.
+    pub fn new(inner: W) -> CountingWriter<W> {
+        CountingWriter { inner: inner, count: 0 }
+    }
+
+    /// Returns the number of bytes written.
+    pub fn count(&self) -> usize {
+        self.count
+    }
+
+    /// Gets a reference to the underlying writer.
+    pub fn get_ref(&self) -> &W {
+        &self.inner
+    }
+
+    /// Gets a mutable reference to the underlying writer.
+    pub fn get_mut(&mut self) -> &mut W {
+        &mut self.inner
+    }
+
+    /// Consumes this CountingWriter, returning the underlying writer.
+    pub fn into_inner(self) -> W {
+        self.inner
+    }
+}
+
+impl<W: Writer> Writer for CountingWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        let n = self.inner.write(buf)?
+        self.count = self.count + n
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.inner.flush()
+    }
+}
+
+/// A writer that writes to a list of bytes.
+pub struct VecWriter {
+    data: List<u8>
+}
+
+impl VecWriter {
+    /// Creates a new VecWriter.
+    pub fn new() -> VecWriter {
+        VecWriter { data: List::new() }
+    }
+
+    /// Creates a new VecWriter with a specified capacity.
+    pub fn with_capacity(capacity: usize) -> VecWriter {
+        VecWriter { data: List::with_capacity(capacity) }
+    }
+
+    /// Returns the written data.
+    pub fn into_inner(self) -> List<u8> {
+        self.data
+    }
+
+    /// Returns a reference to the written data.
+    pub fn get_ref(&self) -> &List<u8> {
+        &self.data
+    }
+}
+
+impl Writer for VecWriter {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        for b in buf {
+            self.data.push(*b)
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        Ok(())
+    }
+}
+
+/// A writer that broadcasts to multiple writers.
+pub struct MultiWriter<W> {
+    writers: List<W>
+}
+
+impl<W: Writer> MultiWriter<W> {
+    /// Creates a new MultiWriter.
+    pub fn new() -> MultiWriter<W> {
+        MultiWriter { writers: List::new() }
+    }
+
+    /// Adds a writer.
+    pub fn add(&mut self, writer: W) {
+        self.writers.push(writer)
+    }
+}
+
+impl<W: Writer> Writer for MultiWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        for writer in self.writers.iter_mut() {
+            writer.write_all(buf)?
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        for writer in self.writers.iter_mut() {
+            writer.flush()?
+        }
+        Ok(())
+    }
+}
+
+/// A writer that writes to two writers simultaneously.
+pub struct TeeWriter<W1, W2> {
+    first: W1,
+    second: W2
+}
+
+impl<W1: Writer, W2: Writer> TeeWriter<W1, W2> {
+    /// Creates a new TeeWriter.
+    pub fn new(first: W1, second: W2) -> TeeWriter<W1, W2> {
+        TeeWriter { first: first, second: second }
+    }
+
+    /// Consumes this TeeWriter, returning the underlying writers.
+    pub fn into_inner(self) -> (W1, W2) {
+        (self.first, self.second)
+    }
+}
+
+impl<W1: Writer, W2: Writer> Writer for TeeWriter<W1, W2> {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        self.first.write_all(buf)?
+        self.second.write_all(buf)?
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.first.flush()?
+        self.second.flush()
+    }
+}

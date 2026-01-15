@@ -1,0 +1,157 @@
+// Klar Standard Library - I/O Module
+//
+// This module provides basic input/output functionality.
+
+pub use std.io.reader.Reader
+pub use std.io.reader.BufReader
+pub use std.io.writer.Writer
+pub use std.io.writer.BufWriter
+pub use std.io.stdio.stdin
+pub use std.io.stdio.stdout
+pub use std.io.stdio.stderr
+pub use std.io.file.File
+pub use std.io.file.OpenOptions
+
+/// The error type for I/O operations.
+pub type IoError = Error
+
+/// A specialized Result type for I/O operations.
+pub type IoResult<T> = Result<T, IoError>
+
+/// Read all bytes from a reader into a new list.
+pub fn read_all<R: Reader>(reader: &mut R) -> IoResult<List<u8>> {
+    let mut buffer: List<u8> = List::new()
+    let mut chunk: [u8; 1024] = [0; 1024]
+
+    loop {
+        match reader.read(&mut chunk) {
+            Ok(0) => break,
+            Ok(n) => {
+                for i in 0..n {
+                    buffer.push(chunk[i])
+                }
+            },
+            Err(e) => return Err(e)
+        }
+    }
+
+    Ok(buffer)
+}
+
+/// Read all bytes from a reader into a String.
+pub fn read_to_string<R: Reader>(reader: &mut R) -> IoResult<String> {
+    let bytes = read_all(reader)?
+    String::from_utf8(bytes).map_err(|_| Error::new(ErrorKind::InvalidData, "invalid UTF-8"))
+}
+
+/// Copy all bytes from a reader to a writer.
+pub fn copy<R: Reader, W: Writer>(reader: &mut R, writer: &mut W) -> IoResult<usize> {
+    let mut total: usize = 0
+    let mut buffer: [u8; 8192] = [0; 8192]
+
+    loop {
+        match reader.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(n) => {
+                writer.write_all(&buffer[0..n])?
+                total = total + n
+            },
+            Err(e) => return Err(e)
+        }
+    }
+
+    Ok(total)
+}
+
+/// Creates an empty reader that yields nothing.
+pub fn empty() -> Empty {
+    Empty {}
+}
+
+/// A reader that yields nothing.
+pub struct Empty {}
+
+impl Reader for Empty {
+    fn read(&mut self, _buf: &mut [u8]) -> IoResult<usize> {
+        Ok(0)
+    }
+}
+
+/// Creates a reader that yields the given bytes.
+pub fn cursor(data: &[u8]) -> Cursor {
+    Cursor { data: data, pos: 0 }
+}
+
+/// A reader over a byte slice.
+pub struct Cursor {
+    data: &[u8],
+    pos: usize
+}
+
+impl Reader for Cursor {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        let remaining = self.data.len() - self.pos
+        let n = buf.len().min(remaining)
+
+        for i in 0..n {
+            buf[i] = self.data[self.pos + i]
+        }
+
+        self.pos = self.pos + n
+        Ok(n)
+    }
+}
+
+impl Cursor {
+    /// Returns the current position in the cursor.
+    pub fn position(&self) -> usize {
+        self.pos
+    }
+
+    /// Sets the position of the cursor.
+    pub fn set_position(&mut self, pos: usize) {
+        self.pos = pos
+    }
+
+    /// Returns the underlying data.
+    pub fn get_ref(&self) -> &[u8] {
+        self.data
+    }
+}
+
+/// Creates a writer that writes to a sink (discards all data).
+pub fn sink() -> Sink {
+    Sink {}
+}
+
+/// A writer that discards all data.
+pub struct Sink {}
+
+impl Writer for Sink {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        Ok(())
+    }
+}
+
+/// Repeat a single byte infinitely.
+pub fn repeat(byte: u8) -> Repeat {
+    Repeat { byte: byte }
+}
+
+/// A reader that yields the same byte infinitely.
+pub struct Repeat {
+    byte: u8
+}
+
+impl Reader for Repeat {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        for i in 0..buf.len() {
+            buf[i] = self.byte
+        }
+        Ok(buf.len())
+    }
+}

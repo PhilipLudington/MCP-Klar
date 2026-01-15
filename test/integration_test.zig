@@ -170,3 +170,200 @@ test "RuntimeConfig defaults when no config file" {
     try testing.expectEqualStrings(".", runtime_config.project_root);
     try testing.expect(!runtime_config.verbose);
 }
+
+// ============================================================================
+// Standard Library Tests
+// ============================================================================
+
+const compiler = @import("compiler");
+const analysis = @import("analysis");
+
+test "parser handles Option type syntax" {
+    const source =
+        \\fn find(list: List<i32>, value: i32) -> Option<usize> {
+        \\    None
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles Result type syntax" {
+    const source =
+        \\fn divide(a: i32, b: i32) -> Result<i32, String> {
+        \\    if b == 0 {
+        \\        Err("division by zero")
+        \\    } else {
+        \\        Ok(a / b)
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles generic struct with multiple type params" {
+    const source =
+        \\struct Pair<A, B> {
+        \\    first: A,
+        \\    second: B
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles generic enum" {
+    const source =
+        \\enum Option<T> {
+        \\    Some(T),
+        \\    None
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles trait definition" {
+    const source =
+        \\trait Display {
+        \\    fn display(self) -> String
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles impl with trait" {
+    const source =
+        \\impl Display for Point {
+        \\    fn display(self) -> String {
+        \\        "Point"
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles method call on generic type" {
+    const source =
+        \\fn main() {
+        \\    let maybe: Option<i32> = Some(42)
+        \\    let value = maybe.unwrap_or(0)
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "parser handles match expression with enum variants" {
+    const source =
+        \\fn process(opt: Option<i32>) -> i32 {
+        \\    match opt {
+        \\        Some(n) => n,
+        \\        None => 0
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.root != compiler.ast.null_node);
+}
+
+test "checker resolves primitive types" {
+    const source =
+        \\let x: i32 = 42
+        \\let y: bool = true
+        \\let z: str = "hello"
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    var checker_inst = try compiler.checker.Checker.init(testing.allocator, &tree);
+    defer checker_inst.deinit();
+
+    try checker_inst.check();
+
+    // Should type check without errors
+    try testing.expect(!checker_inst.hasErrors());
+}
+
+test "checker detects undefined type" {
+    const source =
+        \\let x: UndefinedType = 42
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    var checker_inst = try compiler.checker.Checker.init(testing.allocator, &tree);
+    defer checker_inst.deinit();
+
+    try checker_inst.check();
+
+    // Should have errors for undefined type
+    try testing.expect(checker_inst.hasErrors());
+}

@@ -1,0 +1,374 @@
+// Klar Standard Library - Reader
+//
+// The Reader trait and related types for reading bytes.
+
+/// A trait for objects that can read bytes.
+pub trait Reader {
+    /// Pull some bytes from this source into the specified buffer.
+    /// Returns how many bytes were read.
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize>
+
+    /// Read exactly `buf.len()` bytes into the buffer.
+    fn read_exact(&mut self, buf: &mut [u8]) -> IoResult<()> {
+        let mut total: usize = 0
+        while total < buf.len() {
+            match self.read(&mut buf[total..]) {
+                Ok(0) => return Err(Error::new(ErrorKind::Other, "unexpected end of file")),
+                Ok(n) => total = total + n,
+                Err(e) => return Err(e)
+            }
+        }
+        Ok(())
+    }
+
+    /// Read all bytes until EOF into the buffer.
+    fn read_to_end(&mut self, buf: &mut List<u8>) -> IoResult<usize> {
+        let mut total: usize = 0
+        let mut chunk: [u8; 1024] = [0; 1024]
+
+        loop {
+            match self.read(&mut chunk) {
+                Ok(0) => break,
+                Ok(n) => {
+                    for i in 0..n {
+                        buf.push(chunk[i])
+                    }
+                    total = total + n
+                },
+                Err(e) => return Err(e)
+            }
+        }
+
+        Ok(total)
+    }
+
+    /// Read all bytes until EOF into a string.
+    fn read_to_string(&mut self, buf: &mut String) -> IoResult<usize> {
+        let mut bytes: List<u8> = List::new()
+        let n = self.read_to_end(&mut bytes)?
+
+        match String::from_utf8(bytes) {
+            Ok(s) => {
+                buf.push_str(s.as_str())
+                Ok(n)
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "invalid UTF-8"))
+        }
+    }
+
+    /// Create a "by reference" adapter for this instance of Reader.
+    fn by_ref(&mut self) -> &mut Self {
+        self
+    }
+
+    /// Transform this Reader into a BufReader.
+    fn buffered(self) -> BufReader<Self> {
+        BufReader::new(self)
+    }
+
+    /// Create an iterator that reads bytes from this reader.
+    fn bytes(&mut self) -> Bytes<Self> {
+        Bytes { reader: self }
+    }
+
+    /// Create a reader that reads at most `limit` bytes.
+    fn take(&mut self, limit: usize) -> Take<Self> {
+        Take { reader: self, limit: limit }
+    }
+
+    /// Chain this reader with another.
+    fn chain<R: Reader>(&mut self, next: R) -> Chain<Self, R> {
+        Chain { first: self, second: next, done_first: false }
+    }
+}
+
+/// A buffered reader.
+pub struct BufReader<R> {
+    inner: R,
+    buf: [u8; 8192],
+    pos: usize,
+    cap: usize
+}
+
+impl<R: Reader> BufReader<R> {
+    /// Creates a new BufReader with a default buffer capacity.
+    pub fn new(inner: R) -> BufReader<R> {
+        BufReader {
+            inner: inner,
+            buf: [0; 8192],
+            pos: 0,
+            cap: 0
+        }
+    }
+
+    /// Creates a new BufReader with a specified capacity.
+    pub fn with_capacity(capacity: usize, inner: R) -> BufReader<R> {
+        BufReader {
+            inner: inner,
+            buf: [0; capacity],
+            pos: 0,
+            cap: 0
+        }
+    }
+
+    /// Gets a reference to the underlying reader.
+    pub fn get_ref(&self) -> &R {
+        &self.inner
+    }
+
+    /// Gets a mutable reference to the underlying reader.
+    pub fn get_mut(&mut self) -> &mut R {
+        &mut self.inner
+    }
+
+    /// Returns the number of bytes in the buffer.
+    pub fn buffer(&self) -> &[u8] {
+        &self.buf[self.pos..self.cap]
+    }
+
+    /// Consumes this BufReader, returning the underlying reader.
+    pub fn into_inner(self) -> R {
+        self.inner
+    }
+
+    fn fill_buf(&mut self) -> IoResult<&[u8]> {
+        if self.pos >= self.cap {
+            self.cap = self.inner.read(&mut self.buf)?
+            self.pos = 0
+        }
+        Ok(&self.buf[self.pos..self.cap])
+    }
+
+    fn consume(&mut self, amt: usize) {
+        self.pos = self.pos.min(self.pos + amt)
+    }
+}
+
+impl<R: Reader> Reader for BufReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        // If we have buffered data, use it first
+        if self.pos < self.cap {
+            let available = &self.buf[self.pos..self.cap]
+            let n = buf.len().min(available.len())
+            for i in 0..n {
+                buf[i] = available[i]
+            }
+            self.pos = self.pos + n
+            return Ok(n)
+        }
+
+        // If the request is large, read directly
+        if buf.len() >= self.buf.len() {
+            return self.inner.read(buf)
+        }
+
+        // Fill the buffer and read from it
+        self.fill_buf()?
+        let available = &self.buf[self.pos..self.cap]
+        let n = buf.len().min(available.len())
+        for i in 0..n {
+            buf[i] = available[i]
+        }
+        self.pos = self.pos + n
+        Ok(n)
+    }
+}
+
+impl<R: Reader> BufReader<R> {
+    /// Read a line into the given string.
+    pub fn read_line(&mut self, buf: &mut String) -> IoResult<usize> {
+        let mut total: usize = 0
+
+        loop {
+            let available = self.fill_buf()?
+            if available.is_empty() {
+                break
+            }
+
+            // Look for newline
+            match available.iter().position(|b| *b == '\n' as u8) {
+                Some(i) => {
+                    // Found newline
+                    let line = &available[0..i + 1]
+                    buf.push_str(String::from_utf8_lossy(line).as_str())
+                    total = total + line.len()
+                    self.consume(i + 1)
+                    break
+                },
+                None => {
+                    // No newline, consume all available
+                    buf.push_str(String::from_utf8_lossy(available).as_str())
+                    total = total + available.len()
+                    let len = available.len()
+                    self.consume(len)
+                }
+            }
+        }
+
+        Ok(total)
+    }
+
+    /// Returns an iterator over the lines of this reader.
+    pub fn lines(&mut self) -> Lines<R> {
+        Lines { reader: self }
+    }
+
+    /// Split this reader on a byte delimiter.
+    pub fn split(&mut self, byte: u8) -> Split<R> {
+        Split { reader: self, delim: byte }
+    }
+}
+
+/// Iterator over bytes from a reader.
+pub struct Bytes<R> {
+    reader: R
+}
+
+impl<R: Reader> Iterator for Bytes<R> {
+    type Item = IoResult<u8>
+
+    fn next(&mut self) -> Option<IoResult<u8>> {
+        let mut buf: [u8; 1] = [0]
+        match self.reader.read(&mut buf) {
+            Ok(0) => None,
+            Ok(_) => Some(Ok(buf[0])),
+            Err(e) => Some(Err(e))
+        }
+    }
+}
+
+/// A reader that limits how many bytes can be read.
+pub struct Take<R> {
+    reader: R,
+    limit: usize
+}
+
+impl<R: Reader> Reader for Take<R> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        if self.limit == 0 {
+            return Ok(0)
+        }
+
+        let max = buf.len().min(self.limit)
+        let n = self.reader.read(&mut buf[0..max])?
+        self.limit = self.limit - n
+        Ok(n)
+    }
+}
+
+impl<R> Take<R> {
+    /// Returns the number of bytes that can still be read.
+    pub fn limit(&self) -> usize {
+        self.limit
+    }
+
+    /// Sets the limit.
+    pub fn set_limit(&mut self, limit: usize) {
+        self.limit = limit
+    }
+
+    /// Consumes this Take, returning the underlying reader.
+    pub fn into_inner(self) -> R {
+        self.reader
+    }
+}
+
+/// Chain two readers together.
+pub struct Chain<R1, R2> {
+    first: R1,
+    second: R2,
+    done_first: bool
+}
+
+impl<R1: Reader, R2: Reader> Reader for Chain<R1, R2> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        if not self.done_first {
+            match self.first.read(buf)? {
+                0 => self.done_first = true,
+                n => return Ok(n)
+            }
+        }
+        self.second.read(buf)
+    }
+}
+
+impl<R1, R2> Chain<R1, R2> {
+    /// Consumes this Chain, returning the underlying readers.
+    pub fn into_inner(self) -> (R1, R2) {
+        (self.first, self.second)
+    }
+
+    /// Gets references to the underlying readers.
+    pub fn get_ref(&self) -> (&R1, &R2) {
+        (&self.first, &self.second)
+    }
+}
+
+/// Iterator over lines from a buffered reader.
+pub struct Lines<R> {
+    reader: &mut BufReader<R>
+}
+
+impl<R: Reader> Iterator for Lines<R> {
+    type Item = IoResult<String>
+
+    fn next(&mut self) -> Option<IoResult<String>> {
+        let mut line = String::new()
+        match self.reader.read_line(&mut line) {
+            Ok(0) => None,
+            Ok(_) => {
+                // Remove trailing newline
+                if line.ends_with("\n") {
+                    line.pop()
+                    if line.ends_with("\r") {
+                        line.pop()
+                    }
+                }
+                Some(Ok(line))
+            },
+            Err(e) => Some(Err(e))
+        }
+    }
+}
+
+/// Iterator that splits on a delimiter.
+pub struct Split<R> {
+    reader: &mut BufReader<R>,
+    delim: u8
+}
+
+impl<R: Reader> Iterator for Split<R> {
+    type Item = IoResult<List<u8>>
+
+    fn next(&mut self) -> Option<IoResult<List<u8>>> {
+        let mut buf: List<u8> = List::new()
+
+        loop {
+            let available = match self.reader.fill_buf() {
+                Ok(b) => b,
+                Err(e) => return Some(Err(e))
+            }
+
+            if available.is_empty() {
+                if buf.is_empty() {
+                    return None
+                } else {
+                    return Some(Ok(buf))
+                }
+            }
+
+            match available.iter().position(|b| *b == self.delim) {
+                Some(i) => {
+                    buf.extend(&available[0..i])
+                    self.reader.consume(i + 1)
+                    return Some(Ok(buf))
+                },
+                None => {
+                    buf.extend(available)
+                    let len = available.len()
+                    self.reader.consume(len)
+                }
+            }
+        }
+    }
+}

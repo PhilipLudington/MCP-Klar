@@ -1,0 +1,26 @@
+// Klar Standard Library - Prelude
+//
+// This module re-exports commonly used types and functions from the standard
+// library. It is automatically imported in every Klar program.
+
+// Re-export core types
+pub use std.option.Option
+pub use std.option.Some
+pub use std.option.None
+pub use std.result.Result
+pub use std.result.Ok
+pub use std.result.Err
+pub use std.string.String
+pub use std.collections.list.List
+pub use std.collections.map.Map
+pub use std.collections.set.Set
+
+// Re-export common traits
+pub use std.traits.Display
+pub use std.traits.Debug
+pub use std.traits.Clone
+pub use std.traits.Eq
+pub use std.traits.Ord
+pub use std.traits.Hash
+pub use std.traits.Default
+pub use std.traits.Iterator

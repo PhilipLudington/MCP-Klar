@@ -1,0 +1,322 @@
+// Klar Standard Library - Result
+//
+// The Result type represents either success (Ok) or failure (Err).
+// It is used for error handling in a type-safe way.
+
+/// Result is a type that represents either success (Ok) or failure (Err).
+/// It is the idiomatic way to handle errors in Klar.
+pub enum Result<T, E> {
+    /// Contains the success value.
+    Ok(T),
+    /// Contains the error value.
+    Err(E)
+}
+
+impl<T, E> Result<T, E> {
+    /// Returns true if the result is Ok.
+    pub fn is_ok(self) -> bool {
+        match self {
+            Ok(_) => true,
+            Err(_) => false
+        }
+    }
+
+    /// Returns true if the result is Err.
+    pub fn is_err(self) -> bool {
+        match self {
+            Ok(_) => false,
+            Err(_) => true
+        }
+    }
+
+    /// Converts from Result<T, E> to Option<T>, discarding the error if any.
+    pub fn ok(self) -> Option<T> {
+        match self {
+            Ok(value) => Some(value),
+            Err(_) => None
+        }
+    }
+
+    /// Converts from Result<T, E> to Option<E>, discarding the success value if any.
+    pub fn err(self) -> Option<E> {
+        match self {
+            Ok(_) => None,
+            Err(error) => Some(error)
+        }
+    }
+
+    /// Returns the contained Ok value, panicking if the result is Err.
+    /// Use with caution - prefer `unwrap_or` or pattern matching.
+    pub fn unwrap(self) -> T {
+        match self {
+            Ok(value) => value,
+            Err(_) => panic("called Result::unwrap() on an Err value")
+        }
+    }
+
+    /// Returns the contained Err value, panicking if the result is Ok.
+    pub fn unwrap_err(self) -> E {
+        match self {
+            Ok(_) => panic("called Result::unwrap_err() on an Ok value"),
+            Err(error) => error
+        }
+    }
+
+    /// Returns the contained Ok value or a default.
+    pub fn unwrap_or(self, default: T) -> T {
+        match self {
+            Ok(value) => value,
+            Err(_) => default
+        }
+    }
+
+    /// Returns the contained Ok value or computes it from a closure.
+    pub fn unwrap_or_else(self, f: fn(E) -> T) -> T {
+        match self {
+            Ok(value) => value,
+            Err(error) => f(error)
+        }
+    }
+
+    /// Maps a Result<T, E> to Result<U, E> by applying a function to the Ok value.
+    pub fn map<U>(self, f: fn(T) -> U) -> Result<U, E> {
+        match self {
+            Ok(value) => Ok(f(value)),
+            Err(error) => Err(error)
+        }
+    }
+
+    /// Maps a Result<T, E> to Result<T, F> by applying a function to the Err value.
+    pub fn map_err<F>(self, f: fn(E) -> F) -> Result<T, F> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(f(error))
+        }
+    }
+
+    /// Calls f if the result is Ok, otherwise returns the Err value.
+    pub fn and_then<U>(self, f: fn(T) -> Result<U, E>) -> Result<U, E> {
+        match self {
+            Ok(value) => f(value),
+            Err(error) => Err(error)
+        }
+    }
+
+    /// Returns the result if it is Ok, otherwise returns res.
+    pub fn or(self, res: Result<T, E>) -> Result<T, E> {
+        match self {
+            Ok(_) => self,
+            Err(_) => res
+        }
+    }
+
+    /// Returns the result if it is Ok, otherwise calls f and returns the result.
+    pub fn or_else<F>(self, f: fn(E) -> Result<T, F>) -> Result<T, F> {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => f(error)
+        }
+    }
+
+    /// Converts from &Result<T, E> to Result<&T, &E>.
+    pub fn as_ref(&self) -> Result<&T, &E> {
+        match self {
+            Ok(ref value) => Ok(value),
+            Err(ref error) => Err(error)
+        }
+    }
+
+    /// Converts from &mut Result<T, E> to Result<&mut T, &mut E>.
+    pub fn as_mut(&mut self) -> Result<&mut T, &mut E> {
+        match self {
+            Ok(ref mut value) => Ok(value),
+            Err(ref mut error) => Err(error)
+        }
+    }
+
+    /// Returns true if the result is Ok and the value inside matches a predicate.
+    pub fn is_ok_and(self, f: fn(T) -> bool) -> bool {
+        match self {
+            Ok(value) => f(value),
+            Err(_) => false
+        }
+    }
+
+    /// Returns true if the result is Err and the value inside matches a predicate.
+    pub fn is_err_and(self, f: fn(E) -> bool) -> bool {
+        match self {
+            Ok(_) => false,
+            Err(error) => f(error)
+        }
+    }
+
+    /// Returns an iterator over the possibly contained Ok value.
+    pub fn iter(&self) -> ResultIter<T> {
+        ResultIter { inner: self.ok().as_ref() }
+    }
+
+    /// Returns the contained value or computes a default.
+    pub fn inspect(self, f: fn(&T)) -> Result<T, E> {
+        match self {
+            Ok(ref value) => {
+                f(value)
+                self
+            },
+            Err(_) => self
+        }
+    }
+
+    /// Calls a function with the contained Err value if Err.
+    pub fn inspect_err(self, f: fn(&E)) -> Result<T, E> {
+        match self {
+            Ok(_) => self,
+            Err(ref error) => {
+                f(error)
+                self
+            }
+        }
+    }
+
+    /// Transposes a Result of an Option into an Option of a Result.
+    pub fn transpose(self) -> Option<Result<T, E>>
+    where T: Option<T>
+    {
+        match self {
+            Ok(Some(value)) => Some(Ok(value)),
+            Ok(None) => None,
+            Err(error) => Some(Err(error))
+        }
+    }
+}
+
+/// Iterator over a Result value.
+pub struct ResultIter<T> {
+    inner: Option<&T>
+}
+
+impl<T> Iterator for ResultIter<T> {
+    type Item = &T
+
+    fn next(mut self) -> Option<&T> {
+        self.inner.take()
+    }
+}
+
+impl<T: Clone, E: Clone> Clone for Result<T, E> {
+    fn clone(self) -> Result<T, E> {
+        match self {
+            Ok(value) => Ok(value.clone()),
+            Err(error) => Err(error.clone())
+        }
+    }
+}
+
+impl<T: Eq, E: Eq> Eq for Result<T, E> {
+    fn eq(self, other: Result<T, E>) -> bool {
+        match (self, other) {
+            (Ok(a), Ok(b)) => a == b,
+            (Err(a), Err(b)) => a == b,
+            _ => false
+        }
+    }
+}
+
+impl<T: Display, E: Display> Display for Result<T, E> {
+    fn display(self) -> String {
+        match self {
+            Ok(value) => "Ok(" + value.display() + ")",
+            Err(error) => "Err(" + error.display() + ")"
+        }
+    }
+}
+
+impl<T: Debug, E: Debug> Debug for Result<T, E> {
+    fn debug(self) -> String {
+        match self {
+            Ok(value) => "Ok(" + value.debug() + ")",
+            Err(error) => "Err(" + error.debug() + ")"
+        }
+    }
+}
+
+impl<T: Default, E> Default for Result<T, E> {
+    fn default() -> Result<T, E> {
+        Ok(T::default())
+    }
+}
+
+// Common error type for standard library operations
+pub struct Error {
+    message: String,
+    kind: ErrorKind
+}
+
+pub enum ErrorKind {
+    NotFound,
+    PermissionDenied,
+    AlreadyExists,
+    InvalidInput,
+    InvalidData,
+    TimedOut,
+    Interrupted,
+    OutOfMemory,
+    Other
+}
+
+impl Error {
+    pub fn new(kind: ErrorKind, message: String) -> Error {
+        Error { kind: kind, message: message }
+    }
+
+    pub fn kind(&self) -> ErrorKind {
+        self.kind
+    }
+
+    pub fn message(&self) -> &String {
+        &self.message
+    }
+}
+
+impl Display for Error {
+    fn display(self) -> String {
+        self.message
+    }
+}
+
+impl Debug for Error {
+    fn debug(self) -> String {
+        "Error { kind: " + self.kind.debug() + ", message: " + self.message + " }"
+    }
+}
+
+impl Display for ErrorKind {
+    fn display(self) -> String {
+        match self {
+            NotFound => "not found",
+            PermissionDenied => "permission denied",
+            AlreadyExists => "already exists",
+            InvalidInput => "invalid input",
+            InvalidData => "invalid data",
+            TimedOut => "timed out",
+            Interrupted => "interrupted",
+            OutOfMemory => "out of memory",
+            Other => "other error"
+        }
+    }
+}
+
+impl Debug for ErrorKind {
+    fn debug(self) -> String {
+        match self {
+            NotFound => "NotFound",
+            PermissionDenied => "PermissionDenied",
+            AlreadyExists => "AlreadyExists",
+            InvalidInput => "InvalidInput",
+            InvalidData => "InvalidData",
+            TimedOut => "TimedOut",
+            Interrupted => "Interrupted",
+            OutOfMemory => "OutOfMemory",
+            Other => "Other"
+        }
+    }
+}

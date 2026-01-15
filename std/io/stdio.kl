@@ -1,0 +1,241 @@
+// Klar Standard Library - Standard I/O
+//
+// Handles for standard input, output, and error streams.
+
+/// A handle to the standard input stream.
+pub struct Stdin {
+    // Implementation-defined
+}
+
+/// A handle to the standard output stream.
+pub struct Stdout {
+    // Implementation-defined
+}
+
+/// A handle to the standard error stream.
+pub struct Stderr {
+    // Implementation-defined
+}
+
+/// Returns a handle to the standard input.
+pub fn stdin() -> Stdin {
+    Stdin {}
+}
+
+/// Returns a handle to the standard output.
+pub fn stdout() -> Stdout {
+    Stdout {}
+}
+
+/// Returns a handle to the standard error.
+pub fn stderr() -> Stderr {
+    Stderr {}
+}
+
+impl Stdin {
+    /// Reads a line from standard input into the given string.
+    pub fn read_line(&mut self, buf: &mut String) -> IoResult<usize> {
+        // Implementation provided by runtime
+        let mut reader = self.lock()
+        reader.read_line(buf)
+    }
+
+    /// Locks this handle and returns a readable guard.
+    pub fn lock(&self) -> StdinLock {
+        StdinLock { inner: self }
+    }
+
+    /// Reads exactly `buf.len()` bytes or fails.
+    pub fn read_exact(&mut self, buf: &mut [u8]) -> IoResult<()> {
+        self.lock().read_exact(buf)
+    }
+}
+
+impl Reader for Stdin {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        self.lock().read(buf)
+    }
+}
+
+/// A locked reference to Stdin.
+pub struct StdinLock {
+    inner: &Stdin
+}
+
+impl Reader for StdinLock {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        // Implementation provided by runtime
+        __builtin_stdin_read(buf)
+    }
+}
+
+impl StdinLock {
+    /// Read a line of input.
+    pub fn read_line(&mut self, buf: &mut String) -> IoResult<usize> {
+        // Implementation provided by runtime
+        let mut bytes: List<u8> = List::new()
+        let mut total: usize = 0
+
+        loop {
+            let mut byte: [u8; 1] = [0]
+            match self.read(&mut byte) {
+                Ok(0) => break,
+                Ok(1) => {
+                    total = total + 1
+                    if byte[0] == '\n' as u8 {
+                        bytes.push(byte[0])
+                        break
+                    }
+                    bytes.push(byte[0])
+                },
+                Err(e) => return Err(e),
+                _ => break
+            }
+        }
+
+        match String::from_utf8(bytes) {
+            Ok(s) => {
+                buf.push_str(s.as_str())
+                Ok(total)
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "invalid UTF-8"))
+        }
+    }
+}
+
+impl Stdout {
+    /// Locks this handle and returns a writable guard.
+    pub fn lock(&self) -> StdoutLock {
+        StdoutLock { inner: self }
+    }
+
+    /// Write a string to stdout.
+    pub fn write_str(&mut self, s: &str) -> IoResult<()> {
+        self.lock().write_all(s.as_bytes())
+    }
+
+    /// Write a line to stdout.
+    pub fn write_line(&mut self, s: &str) -> IoResult<()> {
+        let mut lock = self.lock()
+        lock.write_all(s.as_bytes())?
+        lock.write_all("\n".as_bytes())?
+        lock.flush()
+    }
+}
+
+impl Writer for Stdout {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        self.lock().write(buf)
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.lock().flush()
+    }
+}
+
+/// A locked reference to Stdout.
+pub struct StdoutLock {
+    inner: &Stdout
+}
+
+impl Writer for StdoutLock {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        // Implementation provided by runtime
+        __builtin_stdout_write(buf)
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        // Implementation provided by runtime
+        __builtin_stdout_flush()
+    }
+}
+
+impl Stderr {
+    /// Locks this handle and returns a writable guard.
+    pub fn lock(&self) -> StderrLock {
+        StderrLock { inner: self }
+    }
+
+    /// Write a string to stderr.
+    pub fn write_str(&mut self, s: &str) -> IoResult<()> {
+        self.lock().write_all(s.as_bytes())
+    }
+
+    /// Write a line to stderr.
+    pub fn write_line(&mut self, s: &str) -> IoResult<()> {
+        let mut lock = self.lock()
+        lock.write_all(s.as_bytes())?
+        lock.write_all("\n".as_bytes())?
+        lock.flush()
+    }
+}
+
+impl Writer for Stderr {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        self.lock().write(buf)
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.lock().flush()
+    }
+}
+
+/// A locked reference to Stderr.
+pub struct StderrLock {
+    inner: &Stderr
+}
+
+impl Writer for StderrLock {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        // Implementation provided by runtime
+        __builtin_stderr_write(buf)
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        // Implementation provided by runtime
+        __builtin_stderr_flush()
+    }
+}
+
+// Convenience functions
+
+/// Print a string to standard output.
+pub fn print(s: &str) {
+    let _ = stdout().write_str(s)
+}
+
+/// Print a string to standard output with a newline.
+pub fn println(s: &str) {
+    let _ = stdout().write_line(s)
+}
+
+/// Print a string to standard error.
+pub fn eprint(s: &str) {
+    let _ = stderr().write_str(s)
+}
+
+/// Print a string to standard error with a newline.
+pub fn eprintln(s: &str) {
+    let _ = stderr().write_line(s)
+}
+
+/// Read a line from standard input.
+pub fn input() -> IoResult<String> {
+    let mut line = String::new()
+    stdin().read_line(&mut line)?
+    // Remove trailing newline
+    if line.ends_with("\n") {
+        line.pop()
+        if line.ends_with("\r") {
+            line.pop()
+        }
+    }
+    Ok(line)
+}
+
+/// Read a line from standard input with a prompt.
+pub fn input_with_prompt(prompt: &str) -> IoResult<String> {
+    print(prompt)
+    stdout().flush()?
+    input()
+}
