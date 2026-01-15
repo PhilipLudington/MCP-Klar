@@ -2,35 +2,35 @@
 
 > Zig-based MCP server providing Klar language intelligence to Claude Code
 
-## Phase 1: Project Setup
+## Phase 1: Project Setup ✅
 
-- [ ] Initialize Zig project with `build.zig` and `build.zig.zon`
-- [ ] Create directory structure (`src/mcp/`, `src/compiler/`, `src/analysis/`, `src/utils/`, `test/`)
-- [ ] Set up test infrastructure with `zig build test`
-- [ ] Create `.gitstat.json` with test and build configuration
-- [ ] Create wrapper scripts (`build.sh`, `run-tests.sh`)
+- [x] Initialize Zig project with `build.zig` and `build.zig.zon`
+- [x] Create directory structure (`src/mcp/`, `src/compiler/`, `src/analysis/`, `src/utils/`, `test/`)
+- [x] Set up test infrastructure with `zig build test`
+- [x] Create `.gitstat.json` with test and build configuration
+- [x] Create wrapper scripts (`build.sh`, `run-tests.sh`)
 
-## Phase 2: Core Utilities
+## Phase 2: Core Utilities ✅
 
-- [ ] Implement `src/utils/position.zig` (Position, Span structs)
-- [ ] Implement `src/utils/diagnostic.zig` (Diagnostic, Severity, Hint types)
-- [ ] Implement `src/utils/json.zig` (JSON serialization/deserialization)
-- [ ] Write unit tests for utilities
+- [x] Implement `src/utils/position.zig` (Position, Span structs)
+- [x] Implement `src/utils/diagnostic.zig` (Diagnostic, Severity, Hint types)
+- [x] Implement `src/utils/json.zig` (JSON serialization/deserialization)
+- [x] Write unit tests for utilities
 
-## Phase 3: MCP Protocol Layer
+## Phase 3: MCP Protocol Layer ✅
 
-- [ ] Implement `src/mcp/protocol.zig` (JSON-RPC 2.0 request/response types)
-- [ ] Implement `src/mcp/transport.zig` (stdio read/write handling)
-- [ ] Implement `src/mcp/router.zig` (tool dispatch and parameter validation)
-- [ ] Implement `src/mcp/server.zig` (main loop, lifecycle, initialization)
+- [x] Implement `src/mcp/protocol.zig` (JSON-RPC 2.0 request/response types)
+- [x] Implement `src/mcp/transport.zig` (stdio read/write handling)
+- [x] Implement `src/mcp/router.zig` (tool dispatch and parameter validation)
+- [x] Implement `src/mcp/server.zig` (main loop, lifecycle, initialization)
 - [ ] Write MCP protocol integration tests
 
-## Phase 4: Compiler Frontend - Lexer
+## Phase 4: Compiler Frontend - Lexer ✅
 
-- [ ] Define `src/compiler/token.zig` (token types for Klar language)
-- [ ] Implement `src/compiler/lexer.zig` (tokenization with position tracking)
-- [ ] Handle string literals, numbers, identifiers, keywords, operators
-- [ ] Write comprehensive lexer tests
+- [x] Define `src/compiler/token.zig` (token types for Klar language)
+- [x] Implement `src/compiler/lexer.zig` (tokenization with position tracking)
+- [x] Handle string literals, numbers, identifiers, keywords, operators
+- [x] Write comprehensive lexer tests
 
 ## Phase 5: Compiler Frontend - Parser
 

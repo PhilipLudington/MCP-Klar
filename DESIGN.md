@@ -65,7 +65,7 @@ MCP (Model Context Protocol) is Claude Code's native extension mechanism. Unlike
 The server uses **stdio transport** — communication over stdin/stdout with JSON-RPC 2.0 messages.
 
 ```
-Claude Code <--stdin/stdout--> klar-mcp
+Claude Code <--stdin/stdout--> mcp-klar
 ```
 
 ### Message Format
@@ -96,7 +96,7 @@ Claude Code <--stdin/stdout--> klar-mcp
 
 ### Lifecycle
 
-1. Claude Code spawns `klar-mcp` process
+1. Claude Code spawns `mcp-klar` process
 2. Server sends `initialize` capabilities
 3. Claude Code calls tools as needed
 4. Server responds with results
@@ -376,7 +376,7 @@ Project file tree and module structure.
                           │ stdio (JSON-RPC)
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                     klar-mcp (Zig)                           │
+│                     mcp-klar (Zig)                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │ MCP Server  │──│   Router    │──│   Tool Handlers     │  │
 │  │ (JSON-RPC)  │  │             │  │                     │  │
@@ -701,7 +701,7 @@ Add to `~/.claude/settings.json`:
 {
   "mcpServers": {
     "klar": {
-      "command": "klar-mcp",
+      "command": "mcp-klar",
       "args": [],
       "env": {
         "KLAR_STD_PATH": "/path/to/klar/std"
