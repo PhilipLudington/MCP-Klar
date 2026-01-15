@@ -28,6 +28,11 @@ pub const Server = struct {
 
         // Register tool handlers
         try server.router.register("klar_check", tools.check.execute);
+        try server.router.register("klar_completions", tools.completions.execute);
+        try server.router.register("klar_definition", tools.definition.execute);
+        try server.router.register("klar_hover", tools.hover.execute);
+        try server.router.register("klar_references", tools.references.execute);
+        try server.router.register("klar_symbols", tools.symbols.execute);
 
         return server;
     }

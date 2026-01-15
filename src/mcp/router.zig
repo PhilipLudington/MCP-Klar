@@ -84,38 +84,92 @@ pub const Router = struct {
         var tools = std.json.Array.init(self.allocator);
 
         // klar_check tool
-        var check_tool = std.json.ObjectMap.init(self.allocator);
-        check_tool.put("name", .{ .string = "klar_check" }) catch {};
-        check_tool.put("description", .{ .string = "Type check a Klar file and return diagnostics" }) catch {};
+        self.addTool(&tools, "klar_check", "Type check a Klar file and return diagnostics", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+        });
 
-        var check_schema = std.json.ObjectMap.init(self.allocator);
-        check_schema.put("type", .{ .string = "object" }) catch {};
+        // klar_completions tool
+        self.addTool(&tools, "klar_completions", "Get code completions at a position in a Klar file", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "line", .typ = "integer", .description = "Line number (1-indexed)", .required = true },
+            .{ .name = "column", .typ = "integer", .description = "Column number (1-indexed)", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+            .{ .name = "prefix", .typ = "string", .description = "Prefix to filter completions", .required = false },
+        });
 
-        var check_props = std.json.ObjectMap.init(self.allocator);
+        // klar_definition tool
+        self.addTool(&tools, "klar_definition", "Go to definition of a symbol at a position", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "line", .typ = "integer", .description = "Line number (1-indexed)", .required = true },
+            .{ .name = "column", .typ = "integer", .description = "Column number (1-indexed)", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+        });
 
-        var file_prop = std.json.ObjectMap.init(self.allocator);
-        file_prop.put("type", .{ .string = "string" }) catch {};
-        file_prop.put("description", .{ .string = "Path to .kl file" }) catch {};
-        check_props.put("file", .{ .object = file_prop }) catch {};
+        // klar_hover tool
+        self.addTool(&tools, "klar_hover", "Get type and documentation info for a symbol at a position", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "line", .typ = "integer", .description = "Line number (1-indexed)", .required = true },
+            .{ .name = "column", .typ = "integer", .description = "Column number (1-indexed)", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+        });
 
-        var content_prop = std.json.ObjectMap.init(self.allocator);
-        content_prop.put("type", .{ .string = "string" }) catch {};
-        content_prop.put("description", .{ .string = "File content override (for unsaved buffers)" }) catch {};
-        check_props.put("content", .{ .object = content_prop }) catch {};
+        // klar_references tool
+        self.addTool(&tools, "klar_references", "Find all references to a symbol at a position", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "line", .typ = "integer", .description = "Line number (1-indexed)", .required = true },
+            .{ .name = "column", .typ = "integer", .description = "Column number (1-indexed)", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+            .{ .name = "include_definition", .typ = "boolean", .description = "Include the definition in results", .required = false },
+        });
 
-        check_schema.put("properties", .{ .object = check_props }) catch {};
-
-        var required = std.json.Array.init(self.allocator);
-        required.append(.{ .string = "file" }) catch {};
-        check_schema.put("required", .{ .array = required }) catch {};
-
-        check_tool.put("inputSchema", .{ .object = check_schema }) catch {};
-        tools.append(.{ .object = check_tool }) catch {};
+        // klar_symbols tool
+        self.addTool(&tools, "klar_symbols", "List all symbols in a Klar file", &[_]ToolProperty{
+            .{ .name = "file", .typ = "string", .description = "Path to .kl file", .required = true },
+            .{ .name = "content", .typ = "string", .description = "File content override (for unsaved buffers)", .required = false },
+            .{ .name = "kind", .typ = "string", .description = "Filter by symbol kind (function, struct, enum, variable, etc.)", .required = false },
+        });
 
         var result = std.json.ObjectMap.init(self.allocator);
         result.put("tools", .{ .array = tools }) catch {};
 
         return protocol.successResponse(null, .{ .object = result });
+    }
+
+    const ToolProperty = struct {
+        name: []const u8,
+        typ: []const u8,
+        description: []const u8,
+        required: bool,
+    };
+
+    fn addTool(self: *Router, tools: *std.json.Array, name: []const u8, description: []const u8, properties: []const ToolProperty) void {
+        var tool = std.json.ObjectMap.init(self.allocator);
+        tool.put("name", .{ .string = name }) catch {};
+        tool.put("description", .{ .string = description }) catch {};
+
+        var schema = std.json.ObjectMap.init(self.allocator);
+        schema.put("type", .{ .string = "object" }) catch {};
+
+        var props = std.json.ObjectMap.init(self.allocator);
+        var required_arr = std.json.Array.init(self.allocator);
+
+        for (properties) |prop| {
+            var prop_obj = std.json.ObjectMap.init(self.allocator);
+            prop_obj.put("type", .{ .string = prop.typ }) catch {};
+            prop_obj.put("description", .{ .string = prop.description }) catch {};
+            props.put(prop.name, .{ .object = prop_obj }) catch {};
+
+            if (prop.required) {
+                required_arr.append(.{ .string = prop.name }) catch {};
+            }
+        }
+
+        schema.put("properties", .{ .object = props }) catch {};
+        schema.put("required", .{ .array = required_arr }) catch {};
+        tool.put("inputSchema", .{ .object = schema }) catch {};
+
+        tools.append(.{ .object = tool }) catch {};
     }
 
     fn handleToolsCall(self: *Router, params: ?std.json.Value) Response {

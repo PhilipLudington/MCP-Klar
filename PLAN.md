@@ -117,24 +117,24 @@
 
 **Milestone: Phase 3 Complete - Claude can understand code structure**
 
-## Phase 14: Completion Engine
+## Phase 14: Completion Engine ✅
 
-- [ ] Implement `src/analysis/completion.zig`
-- [ ] Analyze completion context (after `.`, in type position, etc.)
-- [ ] Filter completions by accessibility
-- [ ] Sort by relevance/likelihood
-- [ ] Support method completions on receiver types
-- [ ] Support field completions for structs
-- [ ] Support keyword completions
-- [ ] Write completion engine tests
+- [x] Implement `src/analysis/completion.zig`
+- [x] Analyze completion context (after `.`, in type position, etc.)
+- [x] Filter completions by accessibility
+- [x] Sort by relevance/likelihood
+- [x] Support method completions on receiver types
+- [x] Support field completions for structs
+- [x] Support keyword completions
+- [x] Write completion engine tests
 
-## Phase 15: klar_completions Tool
+## Phase 15: klar_completions Tool ✅
 
-- [ ] Implement `src/mcp/tools/completions.zig`
-- [ ] Generate suggestions at position
-- [ ] Include type info, documentation, insert_text
-- [ ] Return context info (receiver_type, trigger)
-- [ ] Write completions tool tests
+- [x] Implement `src/mcp/tools/completions.zig`
+- [x] Generate suggestions at position
+- [x] Include type info, documentation, insert_text
+- [x] Return context info (receiver_type, trigger)
+- [x] Write completions tool tests
 
 **Milestone: Phase 4 Complete - Claude can suggest valid code**
 

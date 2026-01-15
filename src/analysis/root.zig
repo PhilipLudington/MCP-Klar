@@ -5,9 +5,7 @@
 pub const symbols = @import("symbols.zig");
 pub const builder = @import("builder.zig");
 pub const references = @import("references.zig");
-
-// TODO: Implement in Phase 14+
-// pub const completion = @import("completion.zig");
+pub const completion = @import("completion.zig");
 
 // Re-export main types.
 pub const SymbolTable = symbols.SymbolTable;
@@ -30,8 +28,15 @@ pub const ReferenceResult = references.ReferenceResult;
 pub const findReferences = references.findReferences;
 pub const freeReferenceResult = references.freeReferenceResult;
 
+pub const CompletionEngine = completion.CompletionEngine;
+pub const CompletionItem = completion.CompletionItem;
+pub const CompletionItemKind = completion.CompletionItemKind;
+pub const CompletionContext = completion.CompletionContext;
+pub const CompletionResult = completion.CompletionResult;
+
 test {
     _ = symbols;
     _ = builder;
     _ = references;
+    _ = completion;
 }
