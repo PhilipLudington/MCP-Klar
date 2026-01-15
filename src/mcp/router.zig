@@ -1,4 +1,4 @@
-//! Tool dispatch router for MCP server.
+//! Tool and resource dispatch router for MCP server.
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
@@ -13,25 +13,49 @@ const log = std.log.scoped(.router);
 /// Handler function type for tools.
 pub const ToolHandler = *const fn (allocator: Allocator, params: ?std.json.Value) anyerror!std.json.Value;
 
-/// Router for dispatching tool calls.
+/// Handler function type for resources.
+/// Returns the content of the resource as a JSON value.
+pub const ResourceHandler = *const fn (allocator: Allocator, uri: []const u8) anyerror!std.json.Value;
+
+/// Resource definition for listing.
+pub const ResourceDef = struct {
+    uri: []const u8,
+    name: []const u8,
+    description: []const u8,
+    mime_type: []const u8,
+};
+
+/// Router for dispatching tool and resource calls.
 pub const Router = struct {
     allocator: Allocator,
     handlers: std.StringHashMapUnmanaged(ToolHandler),
+    resource_handlers: std.StringHashMapUnmanaged(ResourceHandler),
+    resource_defs: std.ArrayListUnmanaged(ResourceDef),
 
     pub fn init(allocator: Allocator) Router {
         return .{
             .allocator = allocator,
             .handlers = .{},
+            .resource_handlers = .{},
+            .resource_defs = .{},
         };
     }
 
     pub fn deinit(self: *Router) void {
         self.handlers.deinit(self.allocator);
+        self.resource_handlers.deinit(self.allocator);
+        self.resource_defs.deinit(self.allocator);
     }
 
     /// Registers a tool handler.
     pub fn register(self: *Router, name: []const u8, handler: ToolHandler) !void {
         try self.handlers.put(self.allocator, name, handler);
+    }
+
+    /// Registers a resource handler with its definition.
+    pub fn registerResource(self: *Router, def: ResourceDef, handler: ResourceHandler) !void {
+        try self.resource_handlers.put(self.allocator, def.uri, handler);
+        try self.resource_defs.append(self.allocator, def);
     }
 
     /// Dispatches a request to the appropriate handler.
@@ -49,6 +73,12 @@ pub const Router = struct {
         if (std.mem.eql(u8, method, "tools/call")) {
             return self.handleToolsCall(params);
         }
+        if (std.mem.eql(u8, method, "resources/list")) {
+            return self.handleResourcesList();
+        }
+        if (std.mem.eql(u8, method, "resources/read")) {
+            return self.handleResourcesRead(params);
+        }
 
         return protocol.errorResponse(null, ErrorCode.method_not_found, "Unknown method");
     }
@@ -60,9 +90,17 @@ pub const Router = struct {
 
         // Build capabilities
         var capabilities = std.json.ObjectMap.init(self.allocator);
+
+        // Tools capability
         var tools_cap = std.json.ObjectMap.init(self.allocator);
         tools_cap.put("listChanged", .{ .bool = false }) catch {};
         capabilities.put("tools", .{ .object = tools_cap }) catch {};
+
+        // Resources capability
+        var resources_cap = std.json.ObjectMap.init(self.allocator);
+        resources_cap.put("subscribe", .{ .bool = false }) catch {};
+        resources_cap.put("listChanged", .{ .bool = false }) catch {};
+        capabilities.put("resources", .{ .object = resources_cap }) catch {};
 
         // Build server info
         var server_info = std.json.ObjectMap.init(self.allocator);
@@ -192,6 +230,51 @@ pub const Router = struct {
         const result = handler(self.allocator, arguments) catch |err| {
             var buf: [256]u8 = undefined;
             const msg = std.fmt.bufPrint(&buf, "Tool error: {s}", .{@errorName(err)}) catch "Tool error";
+            return protocol.errorResponse(null, ErrorCode.internal_error, msg);
+        };
+
+        return protocol.successResponse(null, result);
+    }
+
+    fn handleResourcesList(self: *Router) Response {
+        var resources = std.json.Array.init(self.allocator);
+
+        for (self.resource_defs.items) |def| {
+            var resource = std.json.ObjectMap.init(self.allocator);
+            resource.put("uri", .{ .string = def.uri }) catch {};
+            resource.put("name", .{ .string = def.name }) catch {};
+            resource.put("description", .{ .string = def.description }) catch {};
+            resource.put("mimeType", .{ .string = def.mime_type }) catch {};
+            resources.append(.{ .object = resource }) catch {};
+        }
+
+        var result = std.json.ObjectMap.init(self.allocator);
+        result.put("resources", .{ .array = resources }) catch {};
+
+        return protocol.successResponse(null, .{ .object = result });
+    }
+
+    fn handleResourcesRead(self: *Router, params: ?std.json.Value) Response {
+        const p = params orelse {
+            return protocol.errorResponse(null, ErrorCode.invalid_params, "Missing params");
+        };
+
+        const obj = p.object;
+        const uri_value = obj.get("uri") orelse {
+            return protocol.errorResponse(null, ErrorCode.invalid_params, "Missing resource URI");
+        };
+        const uri = switch (uri_value) {
+            .string => |s| s,
+            else => return protocol.errorResponse(null, ErrorCode.invalid_params, "URI must be a string"),
+        };
+
+        const handler = self.resource_handlers.get(uri) orelse {
+            return protocol.errorResponse(null, ErrorCode.method_not_found, "Unknown resource");
+        };
+
+        const result = handler(self.allocator, uri) catch |err| {
+            var buf: [256]u8 = undefined;
+            const msg = std.fmt.bufPrint(&buf, "Resource error: {s}", .{@errorName(err)}) catch "Resource error";
             return protocol.errorResponse(null, ErrorCode.internal_error, msg);
         };
 

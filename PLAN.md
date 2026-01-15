@@ -155,12 +155,19 @@
 
 **Milestone: Performance Optimization - Redundant parsing/analysis eliminated**
 
-## Phase 17: MCP Resources
+## Phase 17: MCP Resources ✅
 
-- [ ] Implement `klar://std/docs` resource for standard library docs
-- [ ] Implement `klar://project/structure` resource for project tree
-- [ ] Register resources in MCP initialization
-- [ ] Write resource tests
+- [x] Implement `klar://std/docs` resource for standard library docs
+- [x] Implement `klar://project/structure` resource for project tree
+- [x] Register resources in MCP initialization
+- [x] Write resource tests
+
+**Implementation notes:**
+- Added `ResourceHandler` type and `registerResource()` method to Router
+- Added `resources/list` and `resources/read` dispatch handlers
+- `klar://std/docs` returns comprehensive Markdown documentation for Klar language
+- `klar://project/structure` scans current directory for `.kl` files and builds a tree
+- Resources capability advertised during MCP initialization
 
 ## Phase 18: Configuration & Polish
 

@@ -6,6 +6,7 @@ const protocol = @import("protocol.zig");
 const transport = @import("transport.zig");
 const router_mod = @import("router.zig");
 const tools = @import("tools/root.zig");
+const resources = @import("resources/root.zig");
 const config = @import("config");
 const utils = @import("utils");
 const analysis = @import("analysis");
@@ -40,6 +41,21 @@ pub const Server = struct {
         try server.router.register("klar_hover", tools.hover.execute);
         try server.router.register("klar_references", tools.references.execute);
         try server.router.register("klar_symbols", tools.symbols.execute);
+
+        // Register resource handlers
+        try server.router.registerResource(.{
+            .uri = resources.std_docs.uri,
+            .name = resources.std_docs.name,
+            .description = resources.std_docs.description,
+            .mime_type = resources.std_docs.mime_type,
+        }, resources.std_docs.execute);
+
+        try server.router.registerResource(.{
+            .uri = resources.project_structure.uri,
+            .name = resources.project_structure.name,
+            .description = resources.project_structure.description,
+            .mime_type = resources.project_structure.mime_type,
+        }, resources.project_structure.execute);
 
         return server;
     }
