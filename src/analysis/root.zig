@@ -6,6 +6,7 @@ pub const symbols = @import("symbols.zig");
 pub const builder = @import("builder.zig");
 pub const references = @import("references.zig");
 pub const completion = @import("completion.zig");
+pub const cache = @import("cache.zig");
 
 // Re-export main types.
 pub const SymbolTable = symbols.SymbolTable;
@@ -34,9 +35,14 @@ pub const CompletionItemKind = completion.CompletionItemKind;
 pub const CompletionContext = completion.CompletionContext;
 pub const CompletionResult = completion.CompletionResult;
 
+pub const DocumentCache = cache.DocumentCache;
+pub const CacheEntry = cache.CacheEntry;
+pub const CacheStats = cache.CacheStats;
+
 test {
     _ = symbols;
     _ = builder;
     _ = references;
     _ = completion;
+    _ = cache;
 }

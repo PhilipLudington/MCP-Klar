@@ -5,11 +5,10 @@
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const parser = @import("compiler").parser;
 const checker = @import("compiler").checker;
 const utils = @import("utils");
+const cached_analysis = @import("cached_analysis.zig");
 
-const Parser = parser.Parser;
 const Checker = checker.Checker;
 const Diagnostic = utils.Diagnostic;
 const Span = utils.Span;
@@ -56,37 +55,30 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
     };
 
     // Get content override (optional, for unsaved buffers)
-    const content: ?[]const u8 = if (obj.get("content")) |content_value| blk: {
+    const content_override: ?[]const u8 = if (obj.get("content")) |content_value| blk: {
         break :blk switch (content_value) {
             .string => |s| s,
             else => null,
         };
     } else null;
 
-    // Get the source code
-    const source = if (content) |c| c else blk: {
-        // Read from file
-        const file_content = std.fs.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
-            var buf: [256]u8 = undefined;
-            const msg = std.fmt.bufPrint(&buf, "Failed to read file '{s}': {s}", .{ file_path, @errorName(err) }) catch "Failed to read file";
-            return makeErrorResponse(allocator, msg);
-        };
-        break :blk file_content;
-    };
-    defer if (content == null) allocator.free(source);
-
-    // Parse the source
-    var p_instance = Parser.init(allocator, source, 0);
-    defer p_instance.deinit();
-
-    var ast = p_instance.parse() catch |err| {
+    // Get the source code using cached_analysis helper
+    var source = cached_analysis.getSourceContent(allocator, file_path, content_override) catch |err| {
         var buf: [256]u8 = undefined;
-        const msg = std.fmt.bufPrint(&buf, "Parse error: {s}", .{@errorName(err)}) catch "Parse error";
+        const msg = std.fmt.bufPrint(&buf, "Failed to read file '{s}': {s}", .{ file_path, @errorName(err) }) catch "Failed to read file";
         return makeErrorResponse(allocator, msg);
     };
-    defer ast.deinit();
+    defer source.deinit(allocator);
 
-    // Collect parse errors
+    // Parse and analyze using cached_analysis helper
+    var analysis = cached_analysis.analyzeDocument(allocator, file_path, source.content, true) catch |err| {
+        var buf: [256]u8 = undefined;
+        const msg = std.fmt.bufPrint(&buf, "Analysis error: {s}", .{@errorName(err)}) catch "Analysis error";
+        return makeErrorResponse(allocator, msg);
+    };
+    defer analysis.deinit();
+
+    // Collect diagnostics
     var diagnostics = std.ArrayListUnmanaged(CheckResult.DiagnosticInfo){};
     defer diagnostics.deinit(allocator);
 
@@ -94,32 +86,16 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
     var warning_count: usize = 0;
 
     // Add parse errors
-    for (ast.errors.items) |parse_error| {
-        const diag_info = try makeDiagnosticInfo(allocator, &diagnostics, file_path, parse_error.message, parse_error.span, "error");
-        _ = diag_info;
+    for (analysis.ast.errors.items) |parse_error| {
+        _ = try makeDiagnosticInfo(allocator, &diagnostics, file_path, parse_error.message, parse_error.span, "error");
         error_count += 1;
     }
 
-    // Only run type checker if parsing succeeded without critical errors
-    if (ast.root != @import("compiler").ast.null_node) {
-        var checker_inst = Checker.init(allocator, &ast) catch |err| {
-            var buf: [256]u8 = undefined;
-            const msg = std.fmt.bufPrint(&buf, "Checker initialization error: {s}", .{@errorName(err)}) catch "Checker error";
-            return makeErrorResponse(allocator, msg);
-        };
-        defer checker_inst.deinit();
-
-        checker_inst.check() catch |err| {
-            var buf: [256]u8 = undefined;
-            const msg = std.fmt.bufPrint(&buf, "Type check error: {s}", .{@errorName(err)}) catch "Type check error";
-            return makeErrorResponse(allocator, msg);
-        };
-
-        // Add type checker diagnostics
+    // Add type checker diagnostics
+    if (analysis.checker) |checker_inst| {
         for (checker_inst.getDiagnostics()) |diag| {
             const severity_str = diag.severity.toString();
-            const diag_info = try makeDiagnosticInfo(allocator, &diagnostics, file_path, diag.message, diag.span, severity_str);
-            _ = diag_info;
+            _ = try makeDiagnosticInfo(allocator, &diagnostics, file_path, diag.message, diag.span, severity_str);
 
             if (diag.severity == .@"error") {
                 error_count += 1;

@@ -8,6 +8,9 @@ const router_mod = @import("router.zig");
 const tools = @import("tools/root.zig");
 const config = @import("config");
 const utils = @import("utils");
+const analysis = @import("analysis");
+
+const DocumentCache = analysis.DocumentCache;
 
 const log = std.log.scoped(.server);
 
@@ -18,12 +21,16 @@ pub const Server = struct {
     router: router_mod.Router,
     running: bool,
 
+    /// Document cache for parsed and analyzed files.
+    cache: DocumentCache,
+
     pub fn init(allocator: Allocator) !Server {
         var server = Server{
             .allocator = allocator,
             .transport = transport.StdioTransport.init(allocator),
             .router = router_mod.Router.init(allocator),
             .running = false,
+            .cache = DocumentCache.init(allocator),
         };
 
         // Register tool handlers
@@ -38,8 +45,19 @@ pub const Server = struct {
     }
 
     pub fn deinit(self: *Server) void {
+        self.cache.deinit();
         self.router.deinit();
         self.transport.deinit();
+    }
+
+    /// Get the document cache for use by tools.
+    pub fn getCache(self: *Server) *DocumentCache {
+        return &self.cache;
+    }
+
+    /// Get cache statistics for monitoring.
+    pub fn getCacheStats(self: *const Server) analysis.CacheStats {
+        return self.cache.getStats();
     }
 
     /// Main server loop.

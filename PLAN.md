@@ -138,13 +138,22 @@
 
 **Milestone: Phase 4 Complete - Claude can suggest valid code**
 
-## Phase 16: Document Cache
+## Phase 16: Document Cache ✅
 
-- [ ] Implement document cache in server
-- [ ] Store file contents and parsed ASTs
-- [ ] Invalidate on file changes
-- [ ] Cache analysis results
-- [ ] Measure and optimize performance
+- [x] Implement document cache in server (`src/analysis/cache.zig`)
+- [x] Store file contents and parsed ASTs (CacheEntry with content hash)
+- [x] Invalidate on file changes (hash-based invalidation)
+- [x] Cache analysis results (AST and Checker stored per entry)
+- [x] Measure and optimize performance (CacheStats with hit rate tracking)
+
+**Implementation notes:**
+- `DocumentCache` stores parsed ASTs and type-checked results keyed by content hash
+- LRU eviction when cache reaches capacity (configurable max_entries)
+- `cached_analysis.zig` helper module for tools to use cached analysis
+- `klar_check` tool refactored to use the helper module
+- Statistics tracking: hits, misses, evictions, hit rate
+
+**Milestone: Performance Optimization - Redundant parsing/analysis eliminated**
 
 ## Phase 17: MCP Resources
 
