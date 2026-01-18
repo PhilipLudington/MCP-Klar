@@ -1,0 +1,241 @@
+// Klar Standard Library - Set
+//
+// A hash set implementation for unique value storage.
+
+/// A hash set implemented with a Map[T, ()].
+pub struct Set[T] {
+    map: Map[T, ()]
+}
+
+impl[T: Hash + Eq] Set[T] {
+    /// Creates a new, empty Set.
+    pub fn new() -> Set[T] {
+        return Set { map: Map.new() }
+    }
+
+    /// Creates a new Set with the specified capacity.
+    pub fn with_capacity(capacity: usize) -> Set[T] {
+        return Set { map: Map.with_capacity(capacity) }
+    }
+
+    /// Returns the number of elements in the set.
+    pub fn len(self) -> usize {
+        return self.map.len()
+    }
+
+    /// Returns true if the set contains no elements.
+    pub fn is_empty(self) -> bool {
+        return self.map.is_empty()
+    }
+
+    /// Returns the current capacity of the set.
+    pub fn capacity(self) -> usize {
+        return self.map.capacity()
+    }
+
+    /// Adds a value to the set.
+    /// Returns true if the value was newly inserted.
+    pub fn insert(self, value: T) -> bool {
+        return self.map.insert(value, ()).is_none()
+    }
+
+    /// Removes a value from the set.
+    /// Returns true if the value was present.
+    pub fn remove(self, value: T) -> bool {
+        return self.map.remove(value).is_some()
+    }
+
+    /// Returns true if the set contains the given value.
+    pub fn contains(self, value: T) -> bool {
+        return self.map.contains_key(value)
+    }
+
+    /// Clears the set, removing all values.
+    pub fn clear(self) {
+        self.map.clear()
+    }
+
+    /// Returns an iterator over the values.
+    pub fn iter(self) -> SetIter[T] {
+        return SetIter { iter: self.map.keys() }
+    }
+
+    /// Returns true if self has no elements in common with other.
+    pub fn is_disjoint(self, other: Set[T]) -> bool {
+        for value in self.iter() {
+            if other.contains(value) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Returns true if self is a subset of other.
+    pub fn is_subset(self, other: Set[T]) -> bool {
+        for value in self.iter() {
+            if not other.contains(value) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Returns true if self is a superset of other.
+    pub fn is_superset(self, other: Set[T]) -> bool {
+        return other.is_subset(self)
+    }
+
+    /// Returns the intersection of self and other as a new Set.
+    pub fn intersection(self, other: Set[T]) -> Set[T]
+    where T: Clone
+    {
+        var result: Set[T] = Set.new()
+        for value in self.iter() {
+            if other.contains(value) {
+                result.insert(value.clone())
+            }
+        }
+        return result
+    }
+
+    /// Returns the union of self and other as a new Set.
+    pub fn union(self, other: Set[T]) -> Set[T]
+    where T: Clone
+    {
+        var result: Set[T] = Set.new()
+        for value in self.iter() {
+            result.insert(value.clone())
+        }
+        for value in other.iter() {
+            result.insert(value.clone())
+        }
+        return result
+    }
+
+    /// Returns the difference of self and other as a new Set.
+    pub fn difference(self, other: Set[T]) -> Set[T]
+    where T: Clone
+    {
+        var result: Set[T] = Set.new()
+        for value in self.iter() {
+            if not other.contains(value) {
+                result.insert(value.clone())
+            }
+        }
+        return result
+    }
+
+    /// Returns the symmetric difference of self and other as a new Set.
+    pub fn symmetric_difference(self, other: Set[T]) -> Set[T]
+    where T: Clone
+    {
+        var result: Set[T] = Set.new()
+        for value in self.iter() {
+            if not other.contains(value) {
+                result.insert(value.clone())
+            }
+        }
+        for value in other.iter() {
+            if not self.contains(value) {
+                result.insert(value.clone())
+            }
+        }
+        return result
+    }
+}
+
+/// Iterator over a Set.
+pub struct SetIter[T] {
+    iter: Keys[T, ()]
+}
+
+impl[T] SetIter[T]: Iterator {
+    type Item = T
+
+    fn next(self) -> Option[T] {
+        return self.iter.next()
+    }
+}
+
+impl[T: Clone + Hash + Eq] Set[T]: Clone {
+    fn clone(self) -> Set[T] {
+        var result: Set[T] = Set.with_capacity(self.capacity())
+        for value in self.iter() {
+            result.insert(value.clone())
+        }
+        return result
+    }
+}
+
+impl[T: Eq + Hash] Set[T]: Eq {
+    fn eq(self, other: Set[T]) -> bool {
+        if self.len() != other.len() {
+            return false
+        }
+        for value in self.iter() {
+            if not other.contains(value) {
+                return false
+            }
+        }
+        return true
+    }
+}
+
+impl[T: Debug + Hash + Eq] Set[T]: Debug {
+    fn debug(self) -> String {
+        var result: String = "Set({"
+        var first: bool = true
+        for value in self.iter() {
+            if not first {
+                result = result + ", "
+            }
+            result = result + value.debug()
+            first = false
+        }
+        return result + "})"
+    }
+}
+
+impl[T: Hash + Eq] Set[T]: Default {
+    fn default() -> Set[T] {
+        return Set.new()
+    }
+}
+
+// Set operations using operators
+
+impl[T: Clone + Hash + Eq] Set[T]: BitOr[Set[T]] {
+    type Output = Set[T]
+
+    /// Returns the union of two sets.
+    fn bitor(self, other: Set[T]) -> Set[T] {
+        return self.union(other)
+    }
+}
+
+impl[T: Clone + Hash + Eq] Set[T]: BitAnd[Set[T]] {
+    type Output = Set[T]
+
+    /// Returns the intersection of two sets.
+    fn bitand(self, other: Set[T]) -> Set[T] {
+        return self.intersection(other)
+    }
+}
+
+impl[T: Clone + Hash + Eq] Set[T]: Sub[Set[T]] {
+    type Output = Set[T]
+
+    /// Returns the difference of two sets.
+    fn sub(self, other: Set[T]) -> Set[T] {
+        return self.difference(other)
+    }
+}
+
+impl[T: Clone + Hash + Eq] Set[T]: BitXor[Set[T]] {
+    type Output = Set[T]
+
+    /// Returns the symmetric difference of two sets.
+    fn bitxor(self, other: Set[T]) -> Set[T] {
+        return self.symmetric_difference(other)
+    }
+}

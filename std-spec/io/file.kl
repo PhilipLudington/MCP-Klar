@@ -11,14 +11,14 @@ pub struct File {
 
 impl File {
     /// Opens a file in read-only mode.
-    pub fn open(path: &str) -> IoResult<File> {
-        OpenOptions::new().read(true).open(path)
+    pub fn open(path: str) -> IoResult[File] {
+        return OpenOptions.new().read(true).open(path)
     }
 
     /// Opens a file in write-only mode.
     /// Creates the file if it doesn't exist, truncates it if it does.
-    pub fn create(path: &str) -> IoResult<File> {
-        OpenOptions::new()
+    pub fn create(path: str) -> IoResult[File] {
+        return OpenOptions.new()
             .write(true)
             .create(true)
             .truncate(true)
@@ -27,8 +27,8 @@ impl File {
 
     /// Opens a file in append mode.
     /// Creates the file if it doesn't exist.
-    pub fn append(path: &str) -> IoResult<File> {
-        OpenOptions::new()
+    pub fn append(path: str) -> IoResult[File] {
+        return OpenOptions.new()
             .write(true)
             .append(true)
             .create(true)
@@ -36,63 +36,63 @@ impl File {
     }
 
     /// Returns the path of this file.
-    pub fn path(&self) -> &str {
-        self.path.as_str()
+    pub fn path(self) -> str {
+        return self.path.as_str()
     }
 
     /// Synchronizes all modified content to the filesystem.
-    pub fn sync_all(&self) -> IoResult<()> {
+    pub fn sync_all(self) -> IoResult[()] {
         // Implementation provided by runtime
-        __builtin_file_sync_all(self.handle)
+        return __builtin_file_sync_all(self.handle)
     }
 
     /// Synchronizes content but not metadata.
-    pub fn sync_data(&self) -> IoResult<()> {
+    pub fn sync_data(self) -> IoResult[()] {
         // Implementation provided by runtime
-        __builtin_file_sync_data(self.handle)
+        return __builtin_file_sync_data(self.handle)
     }
 
     /// Sets the length of the file.
-    pub fn set_len(&self, size: usize) -> IoResult<()> {
+    pub fn set_len(self, size: usize) -> IoResult[()] {
         // Implementation provided by runtime
-        __builtin_file_set_len(self.handle, size)
+        return __builtin_file_set_len(self.handle, size)
     }
 
     /// Returns metadata about the file.
-    pub fn metadata(&self) -> IoResult<Metadata> {
+    pub fn metadata(self) -> IoResult[Metadata] {
         // Implementation provided by runtime
-        __builtin_file_metadata(self.handle)
+        return __builtin_file_metadata(self.handle)
     }
 
     /// Creates a new independently owned handle to the underlying file.
-    pub fn try_clone(&self) -> IoResult<File> {
+    pub fn try_clone(self) -> IoResult[File] {
         // Implementation provided by runtime
         let new_handle = __builtin_file_clone(self.handle)?
-        Ok(File { handle: new_handle, path: self.path.clone() })
+        return Ok(File { handle: new_handle, path: self.path.clone() })
     }
 }
 
-impl Reader for File {
-    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+impl File: Reader {
+    fn read(self, buf: [u8]) -> IoResult[usize] {
         // Implementation provided by runtime
-        __builtin_file_read(self.handle, buf)
+        return __builtin_file_read(self.handle, buf)
     }
 }
 
-impl Writer for File {
-    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+impl File: Writer {
+    fn write(self, buf: [u8]) -> IoResult[usize] {
         // Implementation provided by runtime
-        __builtin_file_write(self.handle, buf)
+        return __builtin_file_write(self.handle, buf)
     }
 
-    fn flush(&mut self) -> IoResult<()> {
+    fn flush(self) -> IoResult[()] {
         // Implementation provided by runtime
-        __builtin_file_flush(self.handle)
+        return __builtin_file_flush(self.handle)
     }
 }
 
-impl Drop for File {
-    fn drop(&mut self) {
+impl File: Drop {
+    fn drop(self) {
         // Implementation provided by runtime
         let _ = __builtin_file_close(self.handle)
     }
@@ -111,7 +111,7 @@ pub struct OpenOptions {
 impl OpenOptions {
     /// Creates a new OpenOptions with all options set to false.
     pub fn new() -> OpenOptions {
-        OpenOptions {
+        return OpenOptions {
             read: false,
             write: false,
             append: false,
@@ -122,43 +122,43 @@ impl OpenOptions {
     }
 
     /// Sets the option for read access.
-    pub fn read(&mut self, read: bool) -> &mut OpenOptions {
+    pub fn read(self, read: bool) -> OpenOptions {
         self.read = read
-        self
+        return self
     }
 
     /// Sets the option for write access.
-    pub fn write(&mut self, write: bool) -> &mut OpenOptions {
+    pub fn write(self, write: bool) -> OpenOptions {
         self.write = write
-        self
+        return self
     }
 
     /// Sets the option for append mode.
-    pub fn append(&mut self, append: bool) -> &mut OpenOptions {
+    pub fn append(self, append: bool) -> OpenOptions {
         self.append = append
-        self
+        return self
     }
 
     /// Sets the option for truncating the file.
-    pub fn truncate(&mut self, truncate: bool) -> &mut OpenOptions {
+    pub fn truncate(self, truncate: bool) -> OpenOptions {
         self.truncate = truncate
-        self
+        return self
     }
 
     /// Sets the option for creating a new file.
-    pub fn create(&mut self, create: bool) -> &mut OpenOptions {
+    pub fn create(self, create: bool) -> OpenOptions {
         self.create = create
-        self
+        return self
     }
 
     /// Sets the option for creating a new file exclusively.
-    pub fn create_new(&mut self, create_new: bool) -> &mut OpenOptions {
+    pub fn create_new(self, create_new: bool) -> OpenOptions {
         self.create_new = create_new
-        self
+        return self
     }
 
     /// Opens a file at the given path with the options specified.
-    pub fn open(&self, path: &str) -> IoResult<File> {
+    pub fn open(self, path: str) -> IoResult[File] {
         // Implementation provided by runtime
         let handle = __builtin_file_open(
             path,
@@ -169,7 +169,7 @@ impl OpenOptions {
             self.create,
             self.create_new
         )?
-        Ok(File { handle: handle, path: String::from(path) })
+        return Ok(File { handle: handle, path: String.from(path) })
     }
 }
 
@@ -179,51 +179,51 @@ pub struct Metadata {
     is_dir: bool,
     is_file: bool,
     is_symlink: bool,
-    created: Option<SystemTime>,
-    modified: Option<SystemTime>,
-    accessed: Option<SystemTime>,
+    created: Option[SystemTime],
+    modified: Option[SystemTime],
+    accessed: Option[SystemTime],
     permissions: Permissions
 }
 
 impl Metadata {
     /// Returns the size of the file in bytes.
-    pub fn len(&self) -> usize {
-        self.len
+    pub fn len(self) -> usize {
+        return self.len
     }
 
     /// Returns true if this is a directory.
-    pub fn is_dir(&self) -> bool {
-        self.is_dir
+    pub fn is_dir(self) -> bool {
+        return self.is_dir
     }
 
     /// Returns true if this is a regular file.
-    pub fn is_file(&self) -> bool {
-        self.is_file
+    pub fn is_file(self) -> bool {
+        return self.is_file
     }
 
     /// Returns true if this is a symbolic link.
-    pub fn is_symlink(&self) -> bool {
-        self.is_symlink
+    pub fn is_symlink(self) -> bool {
+        return self.is_symlink
     }
 
     /// Returns the creation time.
-    pub fn created(&self) -> Option<SystemTime> {
-        self.created
+    pub fn created(self) -> Option[SystemTime] {
+        return self.created
     }
 
     /// Returns the last modification time.
-    pub fn modified(&self) -> Option<SystemTime> {
-        self.modified
+    pub fn modified(self) -> Option[SystemTime] {
+        return self.modified
     }
 
     /// Returns the last access time.
-    pub fn accessed(&self) -> Option<SystemTime> {
-        self.accessed
+    pub fn accessed(self) -> Option[SystemTime] {
+        return self.accessed
     }
 
     /// Returns the permissions.
-    pub fn permissions(&self) -> Permissions {
-        self.permissions
+    pub fn permissions(self) -> Permissions {
+        return self.permissions
     }
 }
 
@@ -235,22 +235,22 @@ pub struct Permissions {
 
 impl Permissions {
     /// Returns true if the file is read-only.
-    pub fn readonly(&self) -> bool {
-        self.readonly
+    pub fn readonly(self) -> bool {
+        return self.readonly
     }
 
     /// Sets whether the file is read-only.
-    pub fn set_readonly(&mut self, readonly: bool) {
+    pub fn set_readonly(self, readonly: bool) {
         self.readonly = readonly
     }
 
     /// Returns the raw permission mode (Unix).
-    pub fn mode(&self) -> u32 {
-        self.mode
+    pub fn mode(self) -> u32 {
+        return self.mode
     }
 
     /// Sets the raw permission mode (Unix).
-    pub fn set_mode(&mut self, mode: u32) {
+    pub fn set_mode(self, mode: u32) {
         self.mode = mode
     }
 }
@@ -264,98 +264,98 @@ pub struct SystemTime {
 // Convenience functions for file operations
 
 /// Read the entire contents of a file into a string.
-pub fn read_to_string(path: &str) -> IoResult<String> {
-    let mut file = File::open(path)?
-    let mut contents = String::new()
-    file.read_to_string(&mut contents)?
-    Ok(contents)
+pub fn read_to_string(path: str) -> IoResult[String] {
+    var file = File.open(path)?
+    var contents = String.new()
+    file.read_to_string(contents)?
+    return Ok(contents)
 }
 
 /// Read the entire contents of a file into a byte list.
-pub fn read(path: &str) -> IoResult<List<u8>> {
-    let mut file = File::open(path)?
-    let mut contents: List<u8> = List::new()
-    file.read_to_end(&mut contents)?
-    Ok(contents)
+pub fn read(path: str) -> IoResult[List[u8]] {
+    var file = File.open(path)?
+    var contents: List[u8] = List.new()
+    file.read_to_end(contents)?
+    return Ok(contents)
 }
 
 /// Write bytes to a file.
-pub fn write(path: &str, contents: &[u8]) -> IoResult<()> {
-    let mut file = File::create(path)?
-    file.write_all(contents)
+pub fn write(path: str, contents: [u8]) -> IoResult[()] {
+    var file = File.create(path)?
+    return file.write_all(contents)
 }
 
 /// Write a string to a file.
-pub fn write_str(path: &str, contents: &str) -> IoResult<()> {
-    write(path, contents.as_bytes())
+pub fn write_str(path: str, contents: str) -> IoResult[()] {
+    return write(path, contents.as_bytes())
 }
 
 /// Remove a file.
-pub fn remove_file(path: &str) -> IoResult<()> {
+pub fn remove_file(path: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_remove_file(path)
+    return __builtin_remove_file(path)
 }
 
 /// Rename a file.
-pub fn rename(from: &str, to: &str) -> IoResult<()> {
+pub fn rename(from: str, to: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_rename(from, to)
+    return __builtin_rename(from, to)
 }
 
 /// Copy a file.
-pub fn copy(from: &str, to: &str) -> IoResult<usize> {
-    let mut src = File::open(from)?
-    let mut dst = File::create(to)?
-    io::copy(&mut src, &mut dst)
+pub fn copy(from: str, to: str) -> IoResult[usize] {
+    var src = File.open(from)?
+    var dst = File.create(to)?
+    return io.copy(src, dst)
 }
 
 /// Create a new directory.
-pub fn create_dir(path: &str) -> IoResult<()> {
+pub fn create_dir(path: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_create_dir(path)
+    return __builtin_create_dir(path)
 }
 
 /// Create a directory and all parent directories.
-pub fn create_dir_all(path: &str) -> IoResult<()> {
+pub fn create_dir_all(path: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_create_dir_all(path)
+    return __builtin_create_dir_all(path)
 }
 
 /// Remove a directory.
-pub fn remove_dir(path: &str) -> IoResult<()> {
+pub fn remove_dir(path: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_remove_dir(path)
+    return __builtin_remove_dir(path)
 }
 
 /// Remove a directory and all its contents.
-pub fn remove_dir_all(path: &str) -> IoResult<()> {
+pub fn remove_dir_all(path: str) -> IoResult[()] {
     // Implementation provided by runtime
-    __builtin_remove_dir_all(path)
+    return __builtin_remove_dir_all(path)
 }
 
 /// Read the entries of a directory.
-pub fn read_dir(path: &str) -> IoResult<ReadDir> {
+pub fn read_dir(path: str) -> IoResult[ReadDir] {
     // Implementation provided by runtime
     let entries = __builtin_read_dir(path)?
-    Ok(ReadDir { entries: entries, index: 0 })
+    return Ok(ReadDir { entries: entries, index: 0 })
 }
 
 /// Iterator over directory entries.
 pub struct ReadDir {
-    entries: List<DirEntry>,
+    entries: List[DirEntry],
     index: usize
 }
 
-impl Iterator for ReadDir {
-    type Item = IoResult<DirEntry>
+impl ReadDir: Iterator {
+    type Item = IoResult[DirEntry]
 
-    fn next(&mut self) -> Option<IoResult<DirEntry>> {
+    fn next(self) -> Option[IoResult[DirEntry]] {
         if self.index < self.entries.len() {
             let entry = self.entries[self.index].clone()
             self.index = self.index + 1
-            Some(Ok(entry))
+            return Some(Ok(entry))
         } else {
-            None
+            return None
         }
     }
 }
@@ -368,25 +368,25 @@ pub struct DirEntry {
 
 impl DirEntry {
     /// Returns the full path of this entry.
-    pub fn path(&self) -> &str {
-        self.path.as_str()
+    pub fn path(self) -> str {
+        return self.path.as_str()
     }
 
     /// Returns the file name of this entry.
-    pub fn file_name(&self) -> &str {
-        self.file_name.as_str()
+    pub fn file_name(self) -> str {
+        return self.file_name.as_str()
     }
 
     /// Returns the metadata for this entry.
-    pub fn metadata(&self) -> IoResult<Metadata> {
+    pub fn metadata(self) -> IoResult[Metadata] {
         // Implementation provided by runtime
-        __builtin_metadata(self.path.as_str())
+        return __builtin_metadata(self.path.as_str())
     }
 
     /// Returns the file type for this entry.
-    pub fn file_type(&self) -> IoResult<FileType> {
+    pub fn file_type(self) -> IoResult[FileType] {
         let meta = self.metadata()?
-        Ok(FileType {
+        return Ok(FileType {
             is_dir: meta.is_dir(),
             is_file: meta.is_file(),
             is_symlink: meta.is_symlink()
@@ -394,9 +394,9 @@ impl DirEntry {
     }
 }
 
-impl Clone for DirEntry {
-    fn clone(&self) -> DirEntry {
-        DirEntry {
+impl DirEntry: Clone {
+    fn clone(self) -> DirEntry {
+        return DirEntry {
             path: self.path.clone(),
             file_name: self.file_name.clone()
         }
@@ -411,40 +411,40 @@ pub struct FileType {
 }
 
 impl FileType {
-    pub fn is_dir(&self) -> bool {
-        self.is_dir
+    pub fn is_dir(self) -> bool {
+        return self.is_dir
     }
 
-    pub fn is_file(&self) -> bool {
-        self.is_file
+    pub fn is_file(self) -> bool {
+        return self.is_file
     }
 
-    pub fn is_symlink(&self) -> bool {
-        self.is_symlink
+    pub fn is_symlink(self) -> bool {
+        return self.is_symlink
     }
 }
 
 /// Check if a path exists.
-pub fn exists(path: &str) -> bool {
-    __builtin_path_exists(path)
+pub fn exists(path: str) -> bool {
+    return __builtin_path_exists(path)
 }
 
 /// Get metadata for a path.
-pub fn metadata(path: &str) -> IoResult<Metadata> {
-    __builtin_metadata(path)
+pub fn metadata(path: str) -> IoResult[Metadata] {
+    return __builtin_metadata(path)
 }
 
 /// Get the canonical, absolute path.
-pub fn canonicalize(path: &str) -> IoResult<String> {
-    __builtin_canonicalize(path)
+pub fn canonicalize(path: str) -> IoResult[String] {
+    return __builtin_canonicalize(path)
 }
 
 /// Get the current working directory.
-pub fn current_dir() -> IoResult<String> {
-    __builtin_current_dir()
+pub fn current_dir() -> IoResult[String] {
+    return __builtin_current_dir()
 }
 
 /// Set the current working directory.
-pub fn set_current_dir(path: &str) -> IoResult<()> {
-    __builtin_set_current_dir(path)
+pub fn set_current_dir(path: str) -> IoResult[()] {
+    return __builtin_set_current_dir(path)
 }

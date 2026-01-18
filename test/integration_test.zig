@@ -367,3 +367,208 @@ test "checker detects undefined type" {
     // Should have errors for undefined type
     try testing.expect(checker_inst.hasErrors());
 }
+
+// ============================================================================
+// Advanced Language Feature Tests (from std library)
+// ============================================================================
+
+test "parser handles pub use statement" {
+    const source =
+        \\pub use std.option.Option
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles trait with associated type" {
+    const source =
+        \\trait Iterator {
+        \\    type Item
+        \\    fn next(self) -> Option[Self.Item]
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles trait inheritance" {
+    const source =
+        \\trait Ord: Eq {
+        \\    fn cmp(self, other: Self) -> Ordering
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles where clause on impl" {
+    const source =
+        \\impl[T, U] T: Into[U]
+        \\where U: From[T]
+        \\{
+        \\    fn into(self) -> U {
+        \\        return U.from(self)
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles question mark operator" {
+    const source =
+        \\fn get_value(opt: Option[i32]) -> Option[i32] {
+        \\    let x = opt?
+        \\    return Some(x + 1)
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles while loop" {
+    // Note: "while let" is not in reference Klar spec - using regular while loop
+    const source =
+        \\fn drain() {
+        \\    var running: bool = true
+        \\    while running {
+        \\        process()
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles wildcard pattern in for loop" {
+    const source =
+        \\fn skip_n(n: usize) {
+        \\    for _ in 0..n {
+        \\        do_something()
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles dereference expression" {
+    const source =
+        \\fn deref_test(ptr: &i32) -> i32 {
+        \\    *ptr
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles trait with default method implementation" {
+    const source =
+        \\trait Eq {
+        \\    fn eq(self, other: Self) -> bool
+        \\
+        \\    fn ne(self, other: Self) -> bool {
+        \\        return not self.eq(other)
+        \\    }
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles generic trait" {
+    const source =
+        \\trait PartialEq[Rhs] {
+        \\    fn eq(self, other: Rhs) -> bool
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}
+
+test "parser handles Self.Item associated type access" {
+    const source =
+        \\fn get_next(self) -> Option[Self.Item] {
+        \\    return None
+        \\}
+    ;
+
+    var parser = compiler.parser.Parser.init(testing.allocator, source, 0);
+    defer parser.deinit();
+
+    var tree = try parser.parse();
+    defer tree.deinit();
+
+    // Should parse without errors
+    try testing.expect(tree.errors.items.len == 0);
+}

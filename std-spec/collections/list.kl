@@ -2,47 +2,47 @@
 //
 // A contiguous growable array type.
 
-/// A contiguous growable array type, written as List<T>.
+/// A contiguous growable array type, written as List[T].
 /// Lists can grow and shrink dynamically.
-pub struct List<T> {
+pub struct List[T] {
     data: [T],
     len: usize,
     capacity: usize
 }
 
-impl<T> List<T> {
+impl[T] List[T] {
     /// Creates a new, empty List.
-    pub fn new() -> List<T> {
-        List { data: [], len: 0, capacity: 0 }
+    pub fn new() -> List[T] {
+        return List { data: [], len: 0, capacity: 0 }
     }
 
     /// Creates a new List with the specified capacity.
-    pub fn with_capacity(capacity: usize) -> List<T> {
-        List { data: [], len: 0, capacity: capacity }
+    pub fn with_capacity(capacity: usize) -> List[T] {
+        return List { data: [], len: 0, capacity: capacity }
     }
 
     /// Creates a List from an array.
-    pub fn from_array(arr: [T]) -> List<T> {
-        List { data: arr, len: arr.len(), capacity: arr.len() }
+    pub fn from_array(arr: [T]) -> List[T] {
+        return List { data: arr, len: arr.len(), capacity: arr.len() }
     }
 
     /// Returns the number of elements in the list.
-    pub fn len(&self) -> usize {
-        self.len
+    pub fn len(self) -> usize {
+        return self.len
     }
 
     /// Returns true if the list contains no elements.
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
+    pub fn is_empty(self) -> bool {
+        return self.len == 0
     }
 
     /// Returns the current capacity of the list.
-    pub fn capacity(&self) -> usize {
-        self.capacity
+    pub fn capacity(self) -> usize {
+        return self.capacity
     }
 
     /// Appends an element to the back of the list.
-    pub fn push(&mut self, value: T) {
+    pub fn push(self, value: T) {
         if self.len >= self.capacity {
             self.grow()
         }
@@ -51,49 +51,40 @@ impl<T> List<T> {
     }
 
     /// Removes the last element from the list and returns it.
-    pub fn pop(&mut self) -> Option<T> {
+    pub fn pop(self) -> Option[T] {
         if self.is_empty() {
-            None
+            return None
         } else {
             self.len = self.len - 1
-            Some(self.data.pop())
+            return Some(self.data.pop())
         }
     }
 
     /// Returns a reference to the element at the given index.
-    pub fn get(&self, index: usize) -> Option<&T> {
+    pub fn get(self, index: usize) -> Option[T] {
         if index < self.len {
-            Some(&self.data[index])
+            return Some(self.data[index])
         } else {
-            None
-        }
-    }
-
-    /// Returns a mutable reference to the element at the given index.
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        if index < self.len {
-            Some(&mut self.data[index])
-        } else {
-            None
+            return None
         }
     }
 
     /// Returns a reference to the first element, or None if empty.
-    pub fn first(&self) -> Option<&T> {
-        self.get(0)
+    pub fn first(self) -> Option[T] {
+        return self.get(0)
     }
 
     /// Returns a reference to the last element, or None if empty.
-    pub fn last(&self) -> Option<&T> {
+    pub fn last(self) -> Option[T] {
         if self.is_empty() {
-            None
+            return None
         } else {
-            self.get(self.len - 1)
+            return self.get(self.len - 1)
         }
     }
 
     /// Inserts an element at the given index, shifting all elements after it.
-    pub fn insert(&mut self, index: usize, value: T) {
+    pub fn insert(self, index: usize, value: T) {
         if index > self.len {
             panic("index out of bounds")
         }
@@ -109,58 +100,58 @@ impl<T> List<T> {
     }
 
     /// Removes and returns the element at the given index, shifting all elements after it.
-    pub fn remove(&mut self, index: usize) -> T {
+    pub fn remove(self, index: usize) -> T {
         if index >= self.len {
             panic("index out of bounds")
         }
-        let value = self.data[index]
+        let value: T = self.data[index]
         // Shift elements to the left
         for i in index..(self.len - 1) {
             self.data[i] = self.data[i + 1]
         }
         self.len = self.len - 1
-        value
+        return value
     }
 
     /// Removes and returns the element at the given index by swapping it with the last element.
     /// This is O(1) but does not preserve order.
-    pub fn swap_remove(&mut self, index: usize) -> T {
+    pub fn swap_remove(self, index: usize) -> T {
         if index >= self.len {
             panic("index out of bounds")
         }
-        let value = self.data[index]
+        let value: T = self.data[index]
         self.data[index] = self.data[self.len - 1]
         self.len = self.len - 1
-        value
+        return value
     }
 
     /// Clears the list, removing all elements.
-    pub fn clear(&mut self) {
+    pub fn clear(self) {
         self.len = 0
     }
 
     /// Truncates the list, keeping the first `len` elements and dropping the rest.
-    pub fn truncate(&mut self, new_len: usize) {
+    pub fn truncate(self, new_len: usize) {
         if new_len < self.len {
             self.len = new_len
         }
     }
 
     /// Reserves capacity for at least `additional` more elements.
-    pub fn reserve(&mut self, additional: usize) {
-        let required = self.len + additional
+    pub fn reserve(self, additional: usize) {
+        let required: usize = self.len + additional
         if required > self.capacity {
             self.grow_to(required)
         }
     }
 
     /// Shrinks the capacity to match the length.
-    pub fn shrink_to_fit(&mut self) {
+    pub fn shrink_to_fit(self) {
         self.capacity = self.len
     }
 
     /// Returns true if the list contains the given element.
-    pub fn contains(&self, value: &T) -> bool
+    pub fn contains(self, value: T) -> bool
     where T: Eq
     {
         for item in self.iter() {
@@ -168,11 +159,11 @@ impl<T> List<T> {
                 return true
             }
         }
-        false
+        return false
     }
 
     /// Returns the index of the first occurrence of the given element.
-    pub fn index_of(&self, value: &T) -> Option<usize>
+    pub fn index_of(self, value: T) -> Option[usize]
     where T: Eq
     {
         for (i, item) in self.iter().enumerate() {
@@ -180,26 +171,21 @@ impl<T> List<T> {
                 return Some(i)
             }
         }
-        None
+        return None
     }
 
     /// Returns an iterator over the elements.
-    pub fn iter(&self) -> ListIter<T> {
-        ListIter { list: self, index: 0 }
-    }
-
-    /// Returns an iterator that allows modifying each element.
-    pub fn iter_mut(&mut self) -> ListIterMut<T> {
-        ListIterMut { list: self, index: 0 }
+    pub fn iter(self) -> ListIter[T] {
+        return ListIter { list: self, index: 0 }
     }
 
     /// Returns a slice containing all the elements.
-    pub fn as_slice(&self) -> &[T] {
-        &self.data[0..self.len]
+    pub fn as_slice(self) -> [T] {
+        return self.data[0..self.len]
     }
 
     /// Appends all elements from another list.
-    pub fn extend(&mut self, other: &List<T>)
+    pub fn extend(self, other: List[T])
     where T: Clone
     {
         self.reserve(other.len())
@@ -209,11 +195,11 @@ impl<T> List<T> {
     }
 
     /// Reverses the order of elements in place.
-    pub fn reverse(&mut self) {
-        let mut i: usize = 0
-        let mut j: usize = self.len - 1
+    pub fn reverse(self) {
+        var i: usize = 0
+        var j: usize = self.len - 1
         while i < j {
-            let temp = self.data[i]
+            let temp: T = self.data[i]
             self.data[i] = self.data[j]
             self.data[j] = temp
             i = i + 1
@@ -222,13 +208,13 @@ impl<T> List<T> {
     }
 
     /// Sorts the list in place.
-    pub fn sort(&mut self)
+    pub fn sort(self)
     where T: Ord
     {
         // Simple insertion sort for now
         for i in 1..self.len {
-            let key = self.data[i]
-            let mut j: isize = (i - 1) as isize
+            let key: T = self.data[i]
+            var j: isize = (i - 1) as isize
             while j >= 0 and self.data[j as usize] > key {
                 self.data[(j + 1) as usize] = self.data[j as usize]
                 j = j - 1
@@ -237,84 +223,71 @@ impl<T> List<T> {
         }
     }
 
-    /// Sorts the list in place using a comparison function.
-    pub fn sort_by(&mut self, compare: fn(&T, &T) -> Ordering) {
-        for i in 1..self.len {
-            let key = self.data[i]
-            let mut j: isize = (i - 1) as isize
-            while j >= 0 and compare(&self.data[j as usize], &key) == Ordering::Greater {
-                self.data[(j + 1) as usize] = self.data[j as usize]
-                j = j - 1
-            }
-            self.data[(j + 1) as usize] = key
-        }
-    }
-
     /// Maps each element to a new value.
-    pub fn map<U>(&self, f: fn(&T) -> U) -> List<U> {
-        let mut result: List<U> = List::with_capacity(self.len)
+    pub fn map[U](self, f: fn(T) -> U) -> List[U] {
+        var result: List[U] = List.with_capacity(self.len)
         for item in self.iter() {
             result.push(f(item))
         }
-        result
+        return result
     }
 
     /// Filters elements based on a predicate.
-    pub fn filter(&self, predicate: fn(&T) -> bool) -> List<T>
+    pub fn filter(self, predicate: fn(T) -> bool) -> List[T]
     where T: Clone
     {
-        let mut result: List<T> = List::new()
+        var result: List[T] = List.new()
         for item in self.iter() {
             if predicate(item) {
                 result.push(item.clone())
             }
         }
-        result
+        return result
     }
 
     /// Reduces the list to a single value.
-    pub fn fold<U>(&self, init: U, f: fn(U, &T) -> U) -> U {
-        let mut acc = init
+    pub fn fold[U](self, init: U, f: fn(U, T) -> U) -> U {
+        var acc: U = init
         for item in self.iter() {
             acc = f(acc, item)
         }
-        acc
+        return acc
     }
 
     /// Returns true if any element matches the predicate.
-    pub fn any(&self, predicate: fn(&T) -> bool) -> bool {
+    pub fn any(self, predicate: fn(T) -> bool) -> bool {
         for item in self.iter() {
             if predicate(item) {
                 return true
             }
         }
-        false
+        return false
     }
 
     /// Returns true if all elements match the predicate.
-    pub fn all(&self, predicate: fn(&T) -> bool) -> bool {
+    pub fn all(self, predicate: fn(T) -> bool) -> bool {
         for item in self.iter() {
             if not predicate(item) {
                 return false
             }
         }
-        true
+        return true
     }
 
     /// Returns the first element matching the predicate.
-    pub fn find(&self, predicate: fn(&T) -> bool) -> Option<&T> {
+    pub fn find(self, predicate: fn(T) -> bool) -> Option[T] {
         for item in self.iter() {
             if predicate(item) {
                 return Some(item)
             }
         }
-        None
+        return None
     }
 
     // Private methods
 
-    fn grow(&mut self) {
-        let new_capacity = if self.capacity == 0 {
+    fn grow(self) {
+        let new_capacity: usize = if self.capacity == 0 {
             4
         } else {
             self.capacity * 2
@@ -322,64 +295,43 @@ impl<T> List<T> {
         self.grow_to(new_capacity)
     }
 
-    fn grow_to(&mut self, new_capacity: usize) {
-        // Implementation would reallocate the underlying array
+    fn grow_to(self, new_capacity: usize) {
         self.capacity = new_capacity
     }
 }
 
 /// Iterator over a List.
-pub struct ListIter<T> {
-    list: &List<T>,
+pub struct ListIter[T] {
+    list: List[T],
     index: usize
 }
 
-impl<T> Iterator for ListIter<T> {
-    type Item = &T
+impl[T] ListIter[T]: Iterator {
+    type Item = T
 
-    fn next(&mut self) -> Option<&T> {
+    fn next(self) -> Option[T] {
         if self.index < self.list.len {
-            let item = &self.list.data[self.index]
+            let item: T = self.list.data[self.index]
             self.index = self.index + 1
-            Some(item)
+            return Some(item)
         } else {
-            None
+            return None
         }
     }
 }
 
-/// Mutable iterator over a List.
-pub struct ListIterMut<T> {
-    list: &mut List<T>,
-    index: usize
-}
-
-impl<T> Iterator for ListIterMut<T> {
-    type Item = &mut T
-
-    fn next(&mut self) -> Option<&mut T> {
-        if self.index < self.list.len {
-            let item = &mut self.list.data[self.index]
-            self.index = self.index + 1
-            Some(item)
-        } else {
-            None
-        }
-    }
-}
-
-impl<T: Clone> Clone for List<T> {
-    fn clone(&self) -> List<T> {
-        let mut result: List<T> = List::with_capacity(self.len)
+impl[T: Clone] List[T]: Clone {
+    fn clone(self) -> List[T] {
+        var result: List[T] = List.with_capacity(self.len)
         for item in self.iter() {
             result.push(item.clone())
         }
-        result
+        return result
     }
 }
 
-impl<T: Eq> Eq for List<T> {
-    fn eq(&self, other: &List<T>) -> bool {
+impl[T: Eq] List[T]: Eq {
+    fn eq(self, other: List[T]) -> bool {
         if self.len != other.len {
             return false
         }
@@ -388,14 +340,14 @@ impl<T: Eq> Eq for List<T> {
                 return false
             }
         }
-        true
+        return true
     }
 }
 
-impl<T: Display> Display for List<T> {
-    fn display(&self) -> String {
-        let mut result = "["
-        let mut first = true
+impl[T: Display] List[T]: Display {
+    fn display(self) -> String {
+        var result: String = "["
+        var first: bool = true
         for item in self.iter() {
             if not first {
                 result = result + ", "
@@ -403,14 +355,14 @@ impl<T: Display> Display for List<T> {
             result = result + item.display()
             first = false
         }
-        result + "]"
+        return result + "]"
     }
 }
 
-impl<T: Debug> Debug for List<T> {
-    fn debug(&self) -> String {
-        let mut result = "List(["
-        let mut first = true
+impl[T: Debug] List[T]: Debug {
+    fn debug(self) -> String {
+        var result: String = "List(["
+        var first: bool = true
         for item in self.iter() {
             if not first {
                 result = result + ", "
@@ -418,27 +370,21 @@ impl<T: Debug> Debug for List<T> {
             result = result + item.debug()
             first = false
         }
-        result + "])"
+        return result + "])"
     }
 }
 
-impl<T> Default for List<T> {
-    fn default() -> List<T> {
-        List::new()
+impl[T] List[T]: Default {
+    fn default() -> List[T] {
+        return List.new()
     }
 }
 
 // Index operator
-impl<T> Index<usize> for List<T> {
+impl[T] List[T]: Index[usize] {
     type Output = T
 
-    fn index(&self, idx: usize) -> &T {
-        self.get(idx).unwrap()
-    }
-}
-
-impl<T> IndexMut<usize> for List<T> {
-    fn index_mut(&mut self, idx: usize) -> &mut T {
-        self.get_mut(idx).unwrap()
+    fn index(self, idx: usize) -> T {
+        return self.get(idx).unwrap()
     }
 }

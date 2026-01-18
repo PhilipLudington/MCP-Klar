@@ -1,0 +1,204 @@
+// Klar Standard Library - Option
+//
+// The Option type represents an optional value: every Option is either Some
+// and contains a value, or None and does not.
+
+/// Option is a type that represents either a value (Some) or nothing (None).
+/// It is used to handle nullable values in a type-safe way.
+pub enum Option[T] {
+    /// Contains a value of type T.
+    Some(T),
+    /// Contains no value.
+    None
+}
+
+impl[T] Option[T] {
+    /// Returns true if the option is Some.
+    pub fn is_some(self) -> bool {
+        match self {
+            Some(_) => { return true }
+            None => { return false }
+        }
+    }
+
+    /// Returns true if the option is None.
+    pub fn is_none(self) -> bool {
+        match self {
+            Some(_) => { return false }
+            None => { return true }
+        }
+    }
+
+    /// Returns the contained value, panicking if None.
+    /// Use with caution - prefer `unwrap_or` or pattern matching.
+    pub fn unwrap(self) -> T {
+        match self {
+            Some(value) => { return value }
+            None => { panic("called Option.unwrap() on a None value") }
+        }
+    }
+
+    /// Returns the contained value or a default.
+    pub fn unwrap_or(self, default: T) -> T {
+        match self {
+            Some(value) => { return value }
+            None => { return default }
+        }
+    }
+
+    /// Returns the contained value or computes it from a closure.
+    pub fn unwrap_or_else(self, f: fn() -> T) -> T {
+        match self {
+            Some(value) => { return value }
+            None => { return f() }
+        }
+    }
+
+    /// Maps an Option[T] to Option[U] by applying a function to a contained value.
+    pub fn map[U](self, f: fn(T) -> U) -> Option[U] {
+        match self {
+            Some(value) => { return Some(f(value)) }
+            None => { return None }
+        }
+    }
+
+    /// Returns None if the option is None, otherwise calls f with the wrapped value
+    /// and returns the result.
+    pub fn and_then[U](self, f: fn(T) -> Option[U]) -> Option[U] {
+        match self {
+            Some(value) => { return f(value) }
+            None => { return None }
+        }
+    }
+
+    /// Returns the option if it contains a value, otherwise returns optb.
+    pub fn or(self, optb: Option[T]) -> Option[T] {
+        match self {
+            Some(_) => { return self }
+            None => { return optb }
+        }
+    }
+
+    /// Returns the option if it contains a value, otherwise calls f and returns the result.
+    pub fn or_else(self, f: fn() -> Option[T]) -> Option[T] {
+        match self {
+            Some(_) => { return self }
+            None => { return f() }
+        }
+    }
+
+    /// Transforms the Option[T] into a Result[T, E], mapping Some(v) to Ok(v)
+    /// and None to Err(err).
+    pub fn ok_or[E](self, err: E) -> Result[T, E] {
+        match self {
+            Some(value) => { return Ok(value) }
+            None => { return Err(err) }
+        }
+    }
+
+    /// Takes the value out of the option, leaving a None in its place.
+    pub fn take(self) -> Option[T] {
+        let result: Option[T] = self
+        self = None
+        return result
+    }
+
+    /// Replaces the actual value in the option by the value given in parameter,
+    /// returning the old value if present.
+    pub fn replace(self, value: T) -> Option[T] {
+        let old: Option[T] = self
+        self = Some(value)
+        return old
+    }
+
+    /// Returns true if the option is Some and the contained value equals the given value.
+    pub fn contains[U](self, x: U) -> bool
+    where T: Eq
+    {
+        match self {
+            Some(value) => { return value == x }
+            None => { return false }
+        }
+    }
+
+    /// Returns an iterator over the possibly contained value.
+    pub fn iter(self) -> OptionIter[T] {
+        return OptionIter { inner: self }
+    }
+}
+
+/// Iterator over an Option value.
+pub struct OptionIter[T] {
+    inner: Option[T]
+}
+
+impl[T] OptionIter[T]: Iterator {
+    type Item = T
+
+    fn next(self) -> Option[T] {
+        return self.inner.take()
+    }
+}
+
+impl[T: Clone] Option[T] {
+    /// Returns a copy of the contained value if Some, or None.
+    pub fn cloned(self) -> Option[T] {
+        match self {
+            Some(value) => { return Some(value.clone()) }
+            None => { return None }
+        }
+    }
+}
+
+impl[T: Default] Option[T] {
+    /// Returns the contained value or a default.
+    pub fn unwrap_or_default(self) -> T {
+        match self {
+            Some(value) => { return value }
+            None => { return T.default() }
+        }
+    }
+}
+
+impl[T: Display] Option[T]: Display {
+    fn display(self) -> String {
+        match self {
+            Some(value) => { return "Some(" + value.display() + ")" }
+            None => { return "None" }
+        }
+    }
+}
+
+impl[T: Debug] Option[T]: Debug {
+    fn debug(self) -> String {
+        match self {
+            Some(value) => { return "Some(" + value.debug() + ")" }
+            None => { return "None" }
+        }
+    }
+}
+
+impl[T: Eq] Option[T]: Eq {
+    fn eq(self, other: Option[T]) -> bool {
+        match (self, other) {
+            (Some(a), Some(b)) => { return a == b }
+            (None, None) => { return true }
+            _ => { return false }
+        }
+    }
+}
+
+impl[T: Clone] Option[T]: Clone {
+    fn clone(self) -> Option[T] {
+        match self {
+            Some(value) => { return Some(value.clone()) }
+            None => { return None }
+        }
+    }
+}
+
+impl[T] Option[T]: Default {
+    fn default() -> Option[T] {
+        return None
+    }
+}

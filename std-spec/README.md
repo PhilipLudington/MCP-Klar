@@ -1,20 +1,25 @@
-# Klar Standard Library
+# Klar Standard Library Specification
 
-This directory contains the Klar standard library source files. The standard library provides essential types, traits, and functions for Klar programs.
+This directory contains **design specifications** for the Klar standard library. These files define the API and structure of the standard library but are not the actual implementation.
+
+**Purpose:**
+- Parser test cases for validating Klar syntax
+- MCP tooling support (completions, documentation)
+- Design documentation for the eventual implementation
 
 ## Module Structure
 
 ```
-std/
+std-spec/
 ├── prelude.kl        # Commonly used types, auto-imported
-├── option.kl         # Option<T> type for nullable values
-├── result.kl         # Result<T, E> type for error handling
+├── option.kl         # Option[T] type for nullable values
+├── result.kl         # Result[T, E] type for error handling
 ├── string.kl         # String type and utilities
 ├── traits.kl         # Core traits (Display, Clone, Eq, etc.)
 ├── collections/
-│   ├── list.kl       # List<T> dynamic array
-│   ├── map.kl        # Map<K, V> hash map
-│   └── set.kl        # Set<T> hash set
+│   ├── list.kl       # List[T] dynamic array
+│   ├── map.kl        # Map[K, V] hash map
+│   └── set.kl        # Set[T] hash set
 └── io/
     ├── mod.kl        # I/O module re-exports
     ├── reader.kl     # Reader trait and BufReader
@@ -25,18 +30,18 @@ std/
 
 ## Core Types
 
-### Option<T>
+### Option[T]
 
 Represents an optional value.
 
 ```klar
-let maybe: Option<i32> = Some(42)
-let nothing: Option<i32> = None
+let maybe: Option[i32] = Some(42)
+let nothing: Option[i32] = None
 
 // Pattern matching
 match maybe {
-    Some(n) => println(n.to_string()),
-    None => println("no value")
+    Some(n) => { println(n.to_string()) }
+    None => { println("no value") }
 }
 
 // Methods
@@ -44,33 +49,33 @@ maybe.is_some()          // true
 maybe.unwrap()           // 42
 maybe.unwrap_or(0)       // 42
 nothing.unwrap_or(0)     // 0
-maybe.map(|n| n * 2)     // Some(84)
+maybe.map(fn(n: i32) -> i32 { n * 2 })  // Some(84)
 ```
 
-### Result<T, E>
+### Result[T, E]
 
 Represents success or failure.
 
 ```klar
-fn divide(a: i32, b: i32) -> Result<i32, String> {
+fn divide(a: i32, b: i32) -> Result[i32, String] {
     if b == 0 {
-        Err("division by zero")
+        return Err("division by zero")
     } else {
-        Ok(a / b)
+        return Ok(a / b)
     }
 }
 
 // Error propagation with ?
-fn compute() -> Result<i32, String> {
+fn compute() -> Result[i32, String] {
     let x = divide(10, 2)?
     let y = divide(x, 0)?  // Returns Err early
-    Ok(y)
+    return Ok(y)
 }
 
 // Pattern matching
 match divide(10, 2) {
-    Ok(n) => println("Result: " + n.to_string()),
-    Err(e) => println("Error: " + e)
+    Ok(n) => { println("Result: " + n.to_string()) }
+    Err(e) => { println("Error: " + e) }
 }
 ```
 
@@ -79,7 +84,7 @@ match divide(10, 2) {
 A growable UTF-8 string.
 
 ```klar
-let mut s = String::new()
+var s = String.new()
 s.push_str("Hello")
 s.push(' ')
 s.push_str("World")
@@ -92,12 +97,12 @@ s.to_uppercase()         // "HELLO WORLD"
 s.split(" ")             // ["Hello", "World"]
 ```
 
-### List<T>
+### List[T]
 
 A dynamic array.
 
 ```klar
-let mut numbers: List<i32> = List::new()
+var numbers: List[i32] = List.new()
 numbers.push(1)
 numbers.push(2)
 numbers.push(3)
@@ -105,7 +110,7 @@ numbers.push(3)
 numbers.len()            // 3
 numbers[0]               // 1
 numbers.pop()            // Some(3)
-numbers.contains(&2)     // true
+numbers.contains(2)      // true
 
 // Iteration
 for n in numbers.iter() {
@@ -113,21 +118,21 @@ for n in numbers.iter() {
 }
 
 // Functional operations
-numbers.map(|n| n * 2)
-numbers.filter(|n| n > 1)
-numbers.fold(0, |acc, n| acc + n)
+numbers.map(fn(n: i32) -> i32 { n * 2 })
+numbers.filter(fn(n: i32) -> bool { n > 1 })
+numbers.fold(0, fn(acc: i32, n: i32) -> i32 { acc + n })
 ```
 
-### Map<K, V>
+### Map[K, V]
 
 A hash map for key-value pairs.
 
 ```klar
-let mut ages: Map<String, i32> = Map::new()
+var ages: Map[String, i32] = Map.new()
 ages.insert("Alice", 30)
 ages.insert("Bob", 25)
 
-ages.get("Alice")        // Some(&30)
+ages.get("Alice")        // Some(30)
 ages.contains_key("Bob") // true
 ages.remove("Bob")       // Some(25)
 
@@ -136,25 +141,25 @@ for (name, age) in ages.iter() {
 }
 ```
 
-### Set<T>
+### Set[T]
 
 A hash set for unique values.
 
 ```klar
-let mut numbers: Set<i32> = Set::new()
+var numbers: Set[i32] = Set.new()
 numbers.insert(1)
 numbers.insert(2)
 numbers.insert(1)        // Returns false, already present
 
 numbers.len()            // 2
-numbers.contains(&1)     // true
+numbers.contains(1)      // true
 
 // Set operations
-let a: Set<i32> = [1, 2, 3].into()
-let b: Set<i32> = [2, 3, 4].into()
-a.union(&b)              // {1, 2, 3, 4}
-a.intersection(&b)       // {2, 3}
-a.difference(&b)         // {1}
+let a: Set[i32] = Set.new()
+let b: Set[i32] = Set.new()
+a.union(b)               // {1, 2, 3, 4}
+a.intersection(b)        // {2, 3}
+a.difference(b)          // {1}
 ```
 
 ## Core Traits
@@ -162,51 +167,51 @@ a.difference(&b)         // {1}
 ### Display & Debug
 
 ```klar
-trait Display {
-    fn display(&self) -> String
+pub trait Display {
+    fn display(self) -> String
 }
 
-trait Debug {
-    fn debug(&self) -> String
+pub trait Debug {
+    fn debug(self) -> String
 }
 ```
 
 ### Clone & Eq
 
 ```klar
-trait Clone {
-    fn clone(&self) -> Self
+pub trait Clone {
+    fn clone(self) -> Self
 }
 
-trait Eq {
-    fn eq(&self, other: &Self) -> bool
+pub trait Eq {
+    fn eq(self, other: Self) -> bool
 }
 ```
 
 ### Ord
 
 ```klar
-enum Ordering { Less, Equal, Greater }
+pub enum Ordering { Less, Equal, Greater }
 
-trait Ord: Eq {
-    fn cmp(&self, other: &Self) -> Ordering
+pub trait Ord: Eq {
+    fn cmp(self, other: Self) -> Ordering
 }
 ```
 
 ### Hash
 
 ```klar
-trait Hash {
-    fn hash(&self, hasher: &mut Hasher)
+pub trait Hash {
+    fn hash(self, hasher: Hasher)
 }
 ```
 
 ### Iterator
 
 ```klar
-trait Iterator {
+pub trait Iterator {
     type Item
-    fn next(&mut self) -> Option<Self::Item>
+    fn next(self) -> Option[Self.Item]
 }
 ```
 
@@ -224,8 +229,8 @@ let line = input()?
 let name = input_with_prompt("Enter name: ")?
 
 // Read bytes
-let mut buf: [u8; 1024] = [0; 1024]
-let n = stdin().read(&mut buf)?
+var buf: [u8; 1024] = [0; 1024]
+let n = stdin().read(buf)?
 ```
 
 ### Writing to stdout/stderr
@@ -254,17 +259,17 @@ let contents = read_to_string("data.txt")?
 write_str("output.txt", "Hello, World!")?
 
 // Manual file handling
-let mut file = File::open("data.txt")?
-let mut contents = String::new()
-file.read_to_string(&mut contents)?
+var file = File.open("data.txt")?
+var contents = String.new()
+file.read_to_string(contents)?
 
 // Create and write
-let mut file = File::create("output.txt")?
+var file = File.create("output.txt")?
 file.write_all("Hello".as_bytes())?
 file.flush()?
 
 // Append mode
-let mut file = File::append("log.txt")?
+var file = File.append("log.txt")?
 file.write_all("New entry\n".as_bytes())?
 ```
 
@@ -274,32 +279,23 @@ file.write_all("New entry\n".as_bytes())?
 use std.io.{BufReader, BufWriter}
 
 // Buffered reading
-let file = File::open("data.txt")?
-let mut reader = BufReader::new(file)
+let file = File.open("data.txt")?
+var reader = BufReader.new(file)
 for line in reader.lines() {
     println(line?)
 }
 
 // Buffered writing
-let file = File::create("output.txt")?
-let mut writer = BufWriter::new(file)
+let file = File.create("output.txt")?
+var writer = BufWriter.new(file)
 writer.write_all("Line 1\n".as_bytes())?
 writer.write_all("Line 2\n".as_bytes())?
 writer.flush()?
 ```
 
-## Configuration
-
-Set the `KLAR_STD_PATH` environment variable to point to this directory, or configure it in `klar.json`:
-
-```json
-{
-  "std_path": "/path/to/std"
-}
-```
-
 ## Implementation Notes
 
 - Types prefixed with `__builtin_` are provided by the runtime
-- The standard library is designed to be type-checked by the MCP server
-- All I/O operations return `IoResult<T>` which is `Result<T, Error>`
+- These specifications are used for MCP tooling (completions, docs)
+- All I/O operations return `IoResult[T]` which is `Result[T, Error]`
+- The actual standard library will be implemented in the Klar project

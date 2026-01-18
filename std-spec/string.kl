@@ -11,42 +11,41 @@ pub struct String {
 impl String {
     /// Creates a new empty String.
     pub fn new() -> String {
-        String { data: [], len: 0 }
+        return String { data: [], len: 0 }
     }
 
     /// Creates a new String with the given capacity.
     pub fn with_capacity(capacity: usize) -> String {
-        String { data: [], len: 0 }
+        return String { data: [], len: 0 }
     }
 
     /// Creates a String from a string literal.
     pub fn from(s: str) -> String {
-        String { data: s.as_bytes(), len: s.len() }
+        return String { data: s.as_bytes(), len: s.len() }
     }
 
     /// Returns the length of the string in bytes.
-    pub fn len(&self) -> usize {
-        self.len
+    pub fn len(self) -> usize {
+        return self.len
     }
 
     /// Returns true if the string is empty.
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
+    pub fn is_empty(self) -> bool {
+        return self.len == 0
     }
 
     /// Returns the string as a str slice.
-    pub fn as_str(&self) -> str {
-        // Implementation provided by runtime
-        self.data.as_str()
+    pub fn as_str(self) -> str {
+        return self.data.as_str()
     }
 
     /// Returns a byte slice of the string contents.
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.data
+    pub fn as_bytes(self) -> [u8] {
+        return self.data
     }
 
     /// Appends a string slice to this String.
-    pub fn push_str(&mut self, s: str) {
+    pub fn push_str(self, s: str) {
         for byte in s.as_bytes() {
             self.data.push(byte)
         }
@@ -54,9 +53,8 @@ impl String {
     }
 
     /// Appends a character to this String.
-    pub fn push(&mut self, ch: char) {
-        // UTF-8 encode the character and append bytes
-        let bytes = ch.encode_utf8()
+    pub fn push(self, ch: char) {
+        let bytes: [u8] = ch.encode_utf8()
         for byte in bytes {
             self.data.push(byte)
         }
@@ -64,59 +62,58 @@ impl String {
     }
 
     /// Removes the last character from the string and returns it.
-    pub fn pop(&mut self) -> Option<char> {
+    pub fn pop(self) -> Option[char] {
         if self.is_empty() {
-            None
+            return None
         } else {
-            // UTF-8 decode the last character
-            let ch = self.chars().last()
+            let ch: Option[char] = self.chars().last()
             if ch.is_some() {
-                let char_len = ch.unwrap().len_utf8()
+                let char_len: usize = ch.unwrap().len_utf8()
                 self.len = self.len - char_len
                 self.data.truncate(self.len)
             }
-            ch
+            return ch
         }
     }
 
     /// Clears the string, removing all contents.
-    pub fn clear(&mut self) {
+    pub fn clear(self) {
         self.data.clear()
         self.len = 0
     }
 
     /// Concatenates two strings.
-    pub fn concat(&self, other: &String) -> String {
-        let mut result = self.clone()
+    pub fn concat(self, other: String) -> String {
+        var result: String = self.clone()
         result.push_str(other.as_str())
-        result
+        return result
     }
 
     /// Returns true if the string contains the given substring.
-    pub fn contains(&self, pattern: str) -> bool {
-        self.find(pattern).is_some()
+    pub fn contains(self, pattern: str) -> bool {
+        return self.find(pattern).is_some()
     }
 
     /// Returns true if the string starts with the given prefix.
-    pub fn starts_with(&self, prefix: str) -> bool {
+    pub fn starts_with(self, prefix: str) -> bool {
         if prefix.len() > self.len {
-            false
+            return false
         } else {
-            self.as_str()[0..prefix.len()] == prefix
+            return self.as_str()[0..prefix.len()] == prefix
         }
     }
 
     /// Returns true if the string ends with the given suffix.
-    pub fn ends_with(&self, suffix: str) -> bool {
+    pub fn ends_with(self, suffix: str) -> bool {
         if suffix.len() > self.len {
-            false
+            return false
         } else {
-            self.as_str()[(self.len - suffix.len())..self.len] == suffix
+            return self.as_str()[(self.len - suffix.len())..self.len] == suffix
         }
     }
 
     /// Returns the index of the first occurrence of the pattern, or None.
-    pub fn find(&self, pattern: str) -> Option<usize> {
+    pub fn find(self, pattern: str) -> Option[usize] {
         if pattern.is_empty() {
             return Some(0)
         }
@@ -128,29 +125,13 @@ impl String {
                 return Some(i)
             }
         }
-        None
-    }
-
-    /// Returns the index of the last occurrence of the pattern, or None.
-    pub fn rfind(&self, pattern: str) -> Option<usize> {
-        if pattern.is_empty() {
-            return Some(self.len)
-        }
-        if pattern.len() > self.len {
-            return None
-        }
-        for i in (0..(self.len - pattern.len() + 1)).rev() {
-            if self.as_str()[i..(i + pattern.len())] == pattern {
-                return Some(i)
-            }
-        }
-        None
+        return None
     }
 
     /// Replaces all occurrences of a pattern with another string.
-    pub fn replace(&self, from: str, to: str) -> String {
-        let mut result = String::new()
-        let mut i: usize = 0
+    pub fn replace(self, from: str, to: str) -> String {
+        var result: String = String.new()
+        var i: usize = 0
         while i < self.len {
             if i + from.len() <= self.len and self.as_str()[i..(i + from.len())] == from {
                 result.push_str(to)
@@ -160,64 +141,64 @@ impl String {
                 i = i + 1
             }
         }
-        result
+        return result
     }
 
     /// Returns a substring of this string.
-    pub fn substring(&self, start: usize, end: usize) -> String {
+    pub fn substring(self, start: usize, end: usize) -> String {
         if start > end or end > self.len {
-            String::new()
+            return String.new()
         } else {
-            String::from(self.as_str()[start..end])
+            return String.from(self.as_str()[start..end])
         }
     }
 
     /// Returns a string slice with leading and trailing whitespace removed.
-    pub fn trim(&self) -> str {
-        self.trim_start().trim_end()
+    pub fn trim(self) -> str {
+        return self.trim_start().trim_end()
     }
 
     /// Returns a string slice with leading whitespace removed.
-    pub fn trim_start(&self) -> str {
-        let mut start: usize = 0
+    pub fn trim_start(self) -> str {
+        var start: usize = 0
         while start < self.len and self.as_str()[start].is_whitespace() {
             start = start + 1
         }
-        self.as_str()[start..self.len]
+        return self.as_str()[start..self.len]
     }
 
     /// Returns a string slice with trailing whitespace removed.
-    pub fn trim_end(&self) -> str {
-        let mut end: usize = self.len
+    pub fn trim_end(self) -> str {
+        var end: usize = self.len
         while end > 0 and self.as_str()[end - 1].is_whitespace() {
             end = end - 1
         }
-        self.as_str()[0..end]
+        return self.as_str()[0..end]
     }
 
     /// Converts the string to uppercase.
-    pub fn to_uppercase(&self) -> String {
-        let mut result = String::with_capacity(self.len)
+    pub fn to_uppercase(self) -> String {
+        var result: String = String.with_capacity(self.len)
         for ch in self.chars() {
             result.push(ch.to_uppercase())
         }
-        result
+        return result
     }
 
     /// Converts the string to lowercase.
-    pub fn to_lowercase(&self) -> String {
-        let mut result = String::with_capacity(self.len)
+    pub fn to_lowercase(self) -> String {
+        var result: String = String.with_capacity(self.len)
         for ch in self.chars() {
             result.push(ch.to_lowercase())
         }
-        result
+        return result
     }
 
     /// Splits the string by the given delimiter.
-    pub fn split(&self, delimiter: str) -> List<String> {
-        let mut result: List<String> = List::new()
-        let mut start: usize = 0
-        let mut i: usize = 0
+    pub fn split(self, delimiter: str) -> List[String] {
+        var result: List[String] = List.new()
+        var start: usize = 0
+        var i: usize = 0
 
         while i <= self.len - delimiter.len() {
             if self.as_str()[i..(i + delimiter.len())] == delimiter {
@@ -229,19 +210,19 @@ impl String {
             }
         }
         result.push(self.substring(start, self.len))
-        result
+        return result
     }
 
     /// Splits the string by whitespace.
-    pub fn split_whitespace(&self) -> List<String> {
-        let mut result: List<String> = List::new()
-        let mut current = String::new()
+    pub fn split_whitespace(self) -> List[String] {
+        var result: List[String] = List.new()
+        var current: String = String.new()
 
         for ch in self.chars() {
             if ch.is_whitespace() {
                 if not current.is_empty() {
                     result.push(current)
-                    current = String::new()
+                    current = String.new()
                 }
             } else {
                 current.push(ch)
@@ -250,31 +231,31 @@ impl String {
         if not current.is_empty() {
             result.push(current)
         }
-        result
+        return result
     }
 
     /// Returns an iterator over the characters of the string.
-    pub fn chars(&self) -> Chars {
-        Chars { data: self.as_str(), pos: 0 }
+    pub fn chars(self) -> Chars {
+        return Chars { data: self.as_str(), pos: 0 }
     }
 
     /// Returns an iterator over the bytes of the string.
-    pub fn bytes(&self) -> Bytes {
-        Bytes { data: &self.data, pos: 0 }
+    pub fn bytes(self) -> Bytes {
+        return Bytes { data: self.data, pos: 0 }
     }
 
     /// Returns an iterator over the lines of the string.
-    pub fn lines(&self) -> Lines {
-        Lines { remaining: self.as_str() }
+    pub fn lines(self) -> Lines {
+        return Lines { remaining: self.as_str() }
     }
 
     /// Repeats the string n times.
-    pub fn repeat(&self, n: usize) -> String {
-        let mut result = String::with_capacity(self.len * n)
+    pub fn repeat(self, n: usize) -> String {
+        var result: String = String.with_capacity(self.len * n)
         for _ in 0..n {
             result.push_str(self.as_str())
         }
-        result
+        return result
     }
 }
 
@@ -284,36 +265,36 @@ pub struct Chars {
     pos: usize
 }
 
-impl Iterator for Chars {
+impl Chars: Iterator {
     type Item = char
 
-    fn next(&mut self) -> Option<char> {
+    fn next(self) -> Option[char] {
         if self.pos >= self.data.len() {
-            None
+            return None
         } else {
-            let ch = self.data.char_at(self.pos)
+            let ch: char = self.data.char_at(self.pos)
             self.pos = self.pos + ch.len_utf8()
-            Some(ch)
+            return Some(ch)
         }
     }
 }
 
 /// Iterator over the bytes of a string.
 pub struct Bytes {
-    data: &[u8],
+    data: [u8],
     pos: usize
 }
 
-impl Iterator for Bytes {
+impl Bytes: Iterator {
     type Item = u8
 
-    fn next(&mut self) -> Option<u8> {
+    fn next(self) -> Option[u8] {
         if self.pos >= self.data.len() {
-            None
+            return None
         } else {
-            let byte = self.data[self.pos]
+            let byte: u8 = self.data[self.pos]
             self.pos = self.pos + 1
-            Some(byte)
+            return Some(byte)
         }
     }
 }
@@ -323,72 +304,71 @@ pub struct Lines {
     remaining: str
 }
 
-impl Iterator for Lines {
+impl Lines: Iterator {
     type Item = str
 
-    fn next(&mut self) -> Option<str> {
+    fn next(self) -> Option[str] {
         if self.remaining.is_empty() {
-            None
+            return None
         } else {
             match self.remaining.find('\n') {
                 Some(idx) => {
-                    let line = self.remaining[0..idx]
+                    let line: str = self.remaining[0..idx]
                     self.remaining = self.remaining[(idx + 1)..]
-                    // Handle CRLF
                     if line.ends_with('\r') {
-                        Some(line[0..(line.len() - 1)])
+                        return Some(line[0..(line.len() - 1)])
                     } else {
-                        Some(line)
+                        return Some(line)
                     }
-                },
+                }
                 None => {
-                    let line = self.remaining
+                    let line: str = self.remaining
                     self.remaining = ""
-                    Some(line)
+                    return Some(line)
                 }
             }
         }
     }
 }
 
-impl Clone for String {
-    fn clone(&self) -> String {
-        String::from(self.as_str())
+impl String: Clone {
+    fn clone(self) -> String {
+        return String.from(self.as_str())
     }
 }
 
-impl Eq for String {
-    fn eq(&self, other: &String) -> bool {
-        self.as_str() == other.as_str()
+impl String: Eq {
+    fn eq(self, other: String) -> bool {
+        return self.as_str() == other.as_str()
     }
 }
 
-impl Ord for String {
-    fn cmp(&self, other: &String) -> Ordering {
-        self.as_str().cmp(other.as_str())
+impl String: Ord {
+    fn cmp(self, other: String) -> Ordering {
+        return self.as_str().cmp(other.as_str())
     }
 }
 
-impl Display for String {
-    fn display(&self) -> String {
-        self.clone()
+impl String: Display {
+    fn display(self) -> String {
+        return self.clone()
     }
 }
 
-impl Debug for String {
-    fn debug(&self) -> String {
-        "\"" + self.as_str() + "\""
+impl String: Debug {
+    fn debug(self) -> String {
+        return "\"" + self.as_str() + "\""
     }
 }
 
-impl Default for String {
+impl String: Default {
     fn default() -> String {
-        String::new()
+        return String.new()
     }
 }
 
-impl Hash for String {
-    fn hash(&self, hasher: &mut Hasher) {
+impl String: Hash {
+    fn hash(self, hasher: Hasher) {
         for byte in self.bytes() {
             hasher.write_u8(byte)
         }
@@ -396,20 +376,20 @@ impl Hash for String {
 }
 
 // String concatenation operator
-impl Add<String> for String {
+impl String: Add[String] {
     type Output = String
 
     fn add(self, other: String) -> String {
-        self.concat(&other)
+        return self.concat(other)
     }
 }
 
-impl Add<str> for String {
+impl String: Add[str] {
     type Output = String
 
     fn add(self, other: str) -> String {
-        let mut result = self.clone()
+        var result: String = self.clone()
         result.push_str(other)
-        result
+        return result
     }
 }

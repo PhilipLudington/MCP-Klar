@@ -1,0 +1,506 @@
+// Klar Standard Library - Traits
+//
+// Core traits that define common behavior for types.
+
+/// Trait for types that can be converted to a human-readable string.
+pub trait Display {
+    fn display(self) -> String
+}
+
+/// Trait for types that can be converted to a debug string representation.
+pub trait Debug {
+    fn debug(self) -> String
+}
+
+/// Trait for types that can be cloned.
+pub trait Clone {
+    fn clone(self) -> Self
+}
+
+/// Trait for types that can be compared for equality.
+pub trait Eq {
+    fn eq(self, other: Self) -> bool
+
+    fn ne(self, other: Self) -> bool {
+        return not self.eq(other)
+    }
+}
+
+/// Ordering result for comparisons.
+pub enum Ordering {
+    Less,
+    Equal,
+    Greater
+}
+
+impl Ordering {
+    pub fn is_lt(self) -> bool {
+        match self {
+            Less => { return true }
+            _ => { return false }
+        }
+    }
+
+    pub fn is_gt(self) -> bool {
+        match self {
+            Greater => { return true }
+            _ => { return false }
+        }
+    }
+
+    pub fn is_le(self) -> bool {
+        match self {
+            Greater => { return false }
+            _ => { return true }
+        }
+    }
+
+    pub fn is_ge(self) -> bool {
+        match self {
+            Less => { return false }
+            _ => { return true }
+        }
+    }
+
+    pub fn is_eq(self) -> bool {
+        match self {
+            Equal => { return true }
+            _ => { return false }
+        }
+    }
+
+    pub fn is_ne(self) -> bool {
+        match self {
+            Equal => { return false }
+            _ => { return true }
+        }
+    }
+
+    pub fn reverse(self) -> Ordering {
+        match self {
+            Less => { return Greater }
+            Equal => { return Equal }
+            Greater => { return Less }
+        }
+    }
+
+    pub fn then(self, other: Ordering) -> Ordering {
+        match self {
+            Equal => { return other }
+            _ => { return self }
+        }
+    }
+}
+
+/// Trait for types that have a total ordering.
+pub trait Ord: Eq {
+    fn cmp(self, other: Self) -> Ordering
+
+    fn lt(self, other: Self) -> bool {
+        return self.cmp(other).is_lt()
+    }
+
+    fn le(self, other: Self) -> bool {
+        return self.cmp(other).is_le()
+    }
+
+    fn gt(self, other: Self) -> bool {
+        return self.cmp(other).is_gt()
+    }
+
+    fn ge(self, other: Self) -> bool {
+        return self.cmp(other).is_ge()
+    }
+
+    fn max(self, other: Self) -> Self {
+        if self.cmp(other).is_gt() {
+            return self
+        } else {
+            return other
+        }
+    }
+
+    fn min(self, other: Self) -> Self {
+        if self.cmp(other).is_lt() {
+            return self
+        } else {
+            return other
+        }
+    }
+
+    fn clamp(self, min: Self, max: Self) -> Self {
+        if self.lt(min) {
+            return min
+        } else if self.gt(max) {
+            return max
+        } else {
+            return self
+        }
+    }
+}
+
+/// Trait for types that can be hashed.
+pub trait Hash {
+    fn hash(self, hasher: Hasher)
+}
+
+/// Trait for hasher implementations.
+pub trait Hasher {
+    fn finish(self) -> u64
+    fn write(self, bytes: [u8])
+
+    fn write_u8(self, i: u8) {
+        self.write([i])
+    }
+
+    fn write_u64(self, i: u64) {
+        self.write(i.to_le_bytes())
+    }
+}
+
+/// Default hasher implementation using FNV-1a.
+pub struct DefaultHasher {
+    state: u64
+}
+
+impl DefaultHasher {
+    pub fn new() -> DefaultHasher {
+        return DefaultHasher { state: 14695981039346656037 }
+    }
+}
+
+impl DefaultHasher: Hasher {
+    fn finish(self) -> u64 {
+        return self.state
+    }
+
+    fn write(self, bytes: [u8]) {
+        for byte in bytes {
+            self.state = self.state ^ (byte as u64)
+            self.state = self.state * 1099511628211
+        }
+    }
+}
+
+/// Trait for types that have a default value.
+pub trait Default {
+    fn default() -> Self
+}
+
+/// Trait for types that can be converted from another type.
+pub trait From[T] {
+    fn from(value: T) -> Self
+}
+
+/// Trait for types that can be converted to another type.
+pub trait Into[T] {
+    fn into(self) -> T
+}
+
+/// Blanket implementation: From implies Into
+impl[T, U] T: Into[U]
+where U: From[T]
+{
+    fn into(self) -> U {
+        return U.from(self)
+    }
+}
+
+/// Trait for fallible conversions.
+pub trait TryFrom[T] {
+    type Error
+
+    fn try_from(value: T) -> Result[Self, Self.Error]
+}
+
+/// Trait for fallible conversions.
+pub trait TryInto[T] {
+    type Error
+
+    fn try_into(self) -> Result[T, Self.Error]
+}
+
+/// Blanket implementation: TryFrom implies TryInto
+impl[T, U] T: TryInto[U]
+where U: TryFrom[T]
+{
+    type Error = U.Error
+
+    fn try_into(self) -> Result[U, Self.Error] {
+        return U.try_from(self)
+    }
+}
+
+/// Trait for iterators.
+pub trait Iterator {
+    type Item
+
+    fn next(self) -> Option[Self.Item]
+
+    fn count(self) -> usize {
+        var count: usize = 0
+        while self.next().is_some() {
+            count = count + 1
+        }
+        return count
+    }
+
+    fn nth(self, n: usize) -> Option[Self.Item] {
+        for _ in 0..n {
+            self.next()?
+        }
+        return self.next()
+    }
+
+    fn skip(self, n: usize) -> Skip[Self] {
+        return Skip { iter: self, n: n }
+    }
+
+    fn take(self, n: usize) -> Take[Self] {
+        return Take { iter: self, n: n }
+    }
+
+    fn map[B](self, f: fn(Self.Item) -> B) -> Map[Self, B] {
+        return Map { iter: self, f: f }
+    }
+
+    fn filter(self, predicate: fn(Self.Item) -> bool) -> Filter[Self] {
+        return Filter { iter: self, predicate: predicate }
+    }
+
+    fn fold[B](self, init: B, f: fn(B, Self.Item) -> B) -> B {
+        var acc: B = init
+        for item in self {
+            acc = f(acc, item)
+        }
+        return acc
+    }
+
+    fn enumerate(self) -> Enumerate[Self] {
+        return Enumerate { iter: self, count: 0 }
+    }
+
+    fn any(self, predicate: fn(Self.Item) -> bool) -> bool {
+        for item in self {
+            if predicate(item) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fn all(self, predicate: fn(Self.Item) -> bool) -> bool {
+        for item in self {
+            if not predicate(item) {
+                return false
+            }
+        }
+        return true
+    }
+
+    fn find(self, predicate: fn(Self.Item) -> bool) -> Option[Self.Item] {
+        for item in self {
+            if predicate(item) {
+                return Some(item)
+            }
+        }
+        return None
+    }
+}
+
+/// Trait for types that can be converted to an iterator.
+pub trait IntoIterator {
+    type Item
+    type IntoIter: Iterator
+
+    fn into_iter(self) -> Self.IntoIter
+}
+
+/// Trait for types that can be built from an iterator.
+pub trait FromIterator[A] {
+    fn from_iter[T: IntoIterator](iter: T) -> Self
+}
+
+/// Iterator adaptor that skips elements.
+pub struct Skip[I] {
+    iter: I,
+    n: usize
+}
+
+impl[I: Iterator] Skip[I]: Iterator {
+    type Item = I.Item
+
+    fn next(self) -> Option[Self.Item] {
+        while self.n > 0 {
+            self.n = self.n - 1
+            self.iter.next()?
+        }
+        return self.iter.next()
+    }
+}
+
+/// Iterator adaptor that takes elements.
+pub struct Take[I] {
+    iter: I,
+    n: usize
+}
+
+impl[I: Iterator] Take[I]: Iterator {
+    type Item = I.Item
+
+    fn next(self) -> Option[Self.Item] {
+        if self.n > 0 {
+            self.n = self.n - 1
+            return self.iter.next()
+        } else {
+            return None
+        }
+    }
+}
+
+/// Iterator adaptor that maps elements.
+pub struct Map[I, B] {
+    iter: I,
+    f: fn(I.Item) -> B
+}
+
+impl[I: Iterator, B] Map[I, B]: Iterator {
+    type Item = B
+
+    fn next(self) -> Option[B] {
+        return self.iter.next().map(self.f)
+    }
+}
+
+/// Iterator adaptor that filters elements.
+pub struct Filter[I] {
+    iter: I,
+    predicate: fn(I.Item) -> bool
+}
+
+impl[I: Iterator] Filter[I]: Iterator {
+    type Item = I.Item
+
+    fn next(self) -> Option[Self.Item] {
+        for item in self.iter {
+            if self.predicate(item) {
+                return Some(item)
+            }
+        }
+        return None
+    }
+}
+
+/// Iterator adaptor that enumerates elements.
+pub struct Enumerate[I] {
+    iter: I,
+    count: usize
+}
+
+impl[I: Iterator] Enumerate[I]: Iterator {
+    type Item = (usize, I.Item)
+
+    fn next(self) -> Option[(usize, I.Item)] {
+        match self.iter.next() {
+            Some(item) => {
+                let i: usize = self.count
+                self.count = self.count + 1
+                return Some((i, item))
+            }
+            None => { return None }
+        }
+    }
+}
+
+// Operator traits
+
+/// Trait for the addition operator.
+pub trait Add[Rhs] {
+    type Output
+
+    fn add(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the subtraction operator.
+pub trait Sub[Rhs] {
+    type Output
+
+    fn sub(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the multiplication operator.
+pub trait Mul[Rhs] {
+    type Output
+
+    fn mul(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the division operator.
+pub trait Div[Rhs] {
+    type Output
+
+    fn div(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the remainder operator.
+pub trait Rem[Rhs] {
+    type Output
+
+    fn rem(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the negation operator.
+pub trait Neg {
+    type Output
+
+    fn neg(self) -> Self.Output
+}
+
+/// Trait for the bitwise AND operator.
+pub trait BitAnd[Rhs] {
+    type Output
+
+    fn bitand(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the bitwise OR operator.
+pub trait BitOr[Rhs] {
+    type Output
+
+    fn bitor(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the bitwise XOR operator.
+pub trait BitXor[Rhs] {
+    type Output
+
+    fn bitxor(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the bitwise NOT operator.
+pub trait Not {
+    type Output
+
+    fn not(self) -> Self.Output
+}
+
+/// Trait for the left shift operator.
+pub trait Shl[Rhs] {
+    type Output
+
+    fn shl(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for the right shift operator.
+pub trait Shr[Rhs] {
+    type Output
+
+    fn shr(self, rhs: Rhs) -> Self.Output
+}
+
+/// Trait for indexing operations.
+pub trait Index[Idx] {
+    type Output
+
+    fn index(self, index: Idx) -> Self.Output
+}

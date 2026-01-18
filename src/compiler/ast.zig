@@ -146,6 +146,8 @@ pub const Node = struct {
         impl_decl,
         /// Type alias: `type Name = Type`
         type_alias,
+        /// Associated type declaration in trait: `type Item` or `type Item: Bound`
+        associated_type,
 
         // === Type Annotations ===
 
@@ -165,6 +167,8 @@ pub const Node = struct {
         type_slice,
         /// Tuple type: `(T, U, V)`
         type_tuple,
+        /// Qualified type: `Self.Item`, `T.Item`
+        type_qualified,
 
         // === Module Level ===
 
@@ -194,6 +198,8 @@ pub const Node = struct {
 
         /// Generic parameter: `T` or `T: Trait`
         generic_param,
+        /// Where clause constraint: `T: Clone`
+        where_constraint,
         /// Visibility modifier: `pub`
         visibility,
         /// Doc comment attached to a declaration
@@ -261,6 +267,7 @@ pub const Node = struct {
             generics: NodeRange, // generic parameters
             params: NodeRange, // function parameters
             return_type: NodeIndex, // null_node if void
+            where_clause: NodeRange, // where T: Clone constraints
             body: NodeIndex, // null_node for trait method signatures
             is_pub: bool,
         },
@@ -269,6 +276,7 @@ pub const Node = struct {
         struct_decl: struct {
             name: StringIndex,
             generics: NodeRange,
+            traits: NodeRange, // struct Point: Clone + Eq
             fields: NodeRange,
             is_pub: bool,
         },
@@ -285,6 +293,7 @@ pub const Node = struct {
         trait_decl: struct {
             name: StringIndex,
             generics: NodeRange,
+            super_traits: NodeRange, // Trait bounds: trait Ord: Eq + Clone
             methods: NodeRange,
             is_pub: bool,
         },
@@ -294,6 +303,7 @@ pub const Node = struct {
             trait_type: NodeIndex, // null_node for inherent impl
             target_type: NodeIndex,
             generics: NodeRange,
+            where_clause: NodeRange, // where T: Clone constraints
             methods: NodeRange,
         },
 
@@ -386,6 +396,13 @@ pub const Node = struct {
             is_pub: bool,
         },
 
+        /// Associated type data: `type Item` or `type Item: Bound` or `type Item = ConcreteType`
+        associated_type: struct {
+            name: StringIndex,
+            bounds: NodeRange, // Trait bounds if in trait definition
+            value: NodeIndex, // Concrete type if in impl block, null_node if declaration only
+        },
+
         /// Generic type application: `List[T]`
         generic_type: struct {
             base_type: NodeIndex,
@@ -408,6 +425,12 @@ pub const Node = struct {
         fn_type: struct {
             param_types: NodeRange,
             return_type: NodeIndex,
+        },
+
+        /// Qualified type data: `Self.Item`, `T.Item`
+        qualified_type: struct {
+            base_type: NodeIndex, // Self or T
+            member_name: StringIndex, // Item
         },
 
         /// Range expression data

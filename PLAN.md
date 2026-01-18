@@ -23,7 +23,7 @@
 - [x] Implement `src/mcp/transport.zig` (stdio read/write handling)
 - [x] Implement `src/mcp/router.zig` (tool dispatch and parameter validation)
 - [x] Implement `src/mcp/server.zig` (main loop, lifecycle, initialization)
-- [ ] Write MCP protocol integration tests
+- [x] Write MCP protocol integration tests
 
 ## Phase 4: Compiler Frontend - Lexer ✅
 

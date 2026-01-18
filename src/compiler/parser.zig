@@ -173,6 +173,10 @@ pub const Parser = struct {
             return_type = try self.parseType();
         }
 
+        // Optional where clause
+        self.skipNewlines();
+        const where_clause = try self.parseOptionalWhereClause();
+
         // Body (optional for trait method signatures)
         var body: NodeIndex = null_node;
         self.skipNewlines();
@@ -190,6 +194,7 @@ pub const Parser = struct {
                 .generics = generics,
                 .params = params,
                 .return_type = return_type,
+                .where_clause = where_clause,
                 .body = body,
                 .is_pub = is_pub,
             } },
@@ -261,6 +266,12 @@ pub const Parser = struct {
         const name = try self.expectIdentifier("expected struct name");
         const generics = try self.parseOptionalGenerics();
 
+        // Optional trait implementations: struct Point: Clone + Eq
+        var traits = NodeRange.empty;
+        if (self.match(.colon)) {
+            traits = try self.parseTraitBounds();
+        }
+
         self.skipNewlines();
         if (!self.match(.lbrace)) {
             return self.errorAtCurrent("expected '{' after struct name");
@@ -280,6 +291,7 @@ pub const Parser = struct {
             .data = .{ .struct_decl = .{
                 .name = name,
                 .generics = generics,
+                .traits = traits,
                 .fields = fields,
                 .is_pub = is_pub,
             } },
@@ -419,6 +431,12 @@ pub const Parser = struct {
         const name = try self.expectIdentifier("expected trait name");
         const generics = try self.parseOptionalGenerics();
 
+        // Parse super traits: trait Ord: Eq + Clone
+        var super_traits = NodeRange.empty;
+        if (self.match(.colon)) {
+            super_traits = try self.parseTraitBounds();
+        }
+
         self.skipNewlines();
         if (!self.match(.lbrace)) {
             return self.errorAtCurrent("expected '{' after trait name");
@@ -438,8 +456,83 @@ pub const Parser = struct {
             .data = .{ .trait_decl = .{
                 .name = name,
                 .generics = generics,
+                .super_traits = super_traits,
                 .methods = methods,
                 .is_pub = is_pub,
+            } },
+        });
+    }
+
+    /// Parse trait bounds: Trait1 + Trait2 + Trait3
+    fn parseTraitBounds(self: *Parser) ParseError!NodeRange {
+        const scratch_start = self.scratch.items.len;
+
+        const first_bound = try self.parseType();
+        try self.scratch.append(self.ast.allocator, first_bound);
+
+        while (self.match(.plus)) {
+            const bound = try self.parseType();
+            try self.scratch.append(self.ast.allocator, bound);
+        }
+
+        return self.finishNodeList(scratch_start);
+    }
+
+    /// Parse optional where clause: where T: Clone, K: Hashable + Eq
+    fn parseOptionalWhereClause(self: *Parser) ParseError!NodeRange {
+        if (!self.match(.kw_where)) {
+            return NodeRange.empty;
+        }
+
+        const scratch_start = self.scratch.items.len;
+
+        // Parse first constraint
+        const first_constraint = try self.parseWhereConstraint();
+        try self.scratch.append(self.ast.allocator, first_constraint);
+
+        // Parse additional constraints (comma or newline separated)
+        while (true) {
+            self.skipNewlines();
+            // Check for comma separator or another identifier (next constraint)
+            if (self.match(.comma)) {
+                self.skipNewlines();
+            }
+
+            // Stop if we hit a block start or something that's not an identifier
+            if (self.check(.lbrace) or self.check(.eof) or
+                (!self.check(.identifier) and !self.check(.kw_Self)))
+            {
+                break;
+            }
+
+            const constraint = try self.parseWhereConstraint();
+            try self.scratch.append(self.ast.allocator, constraint);
+        }
+
+        return self.finishNodeList(scratch_start);
+    }
+
+    /// Parse a single where constraint: T: Clone + Eq
+    fn parseWhereConstraint(self: *Parser) ParseError!NodeIndex {
+        const start_span = self.current.span;
+
+        // Parse the type variable name
+        const name = try self.expectIdentifier("expected type parameter name in where clause");
+
+        if (!self.match(.colon)) {
+            return self.errorAtCurrent("expected ':' after type parameter in where clause");
+        }
+
+        const bounds = try self.parseTraitBounds();
+
+        const end_span = self.previous.span;
+
+        return self.ast.addNode(.{
+            .tag = .where_constraint,
+            .span = Span.merge(start_span, end_span),
+            .data = .{ .generic_param = .{
+                .name = name,
+                .bounds = bounds,
             } },
         });
     }
@@ -449,12 +542,53 @@ pub const Parser = struct {
 
         self.skipNewlines();
         while (!self.check(.rbrace) and !self.check(.eof)) {
-            const method = try self.parseFnDecl(false);
-            try self.scratch.append(self.ast.allocator, method);
+            if (self.check(.kw_type)) {
+                // Associated type declaration: type Item or type Item: Bound
+                const assoc_type = try self.parseAssociatedType();
+                try self.scratch.append(self.ast.allocator, assoc_type);
+            } else {
+                const method = try self.parseFnDecl(false);
+                try self.scratch.append(self.ast.allocator, method);
+            }
             self.skipNewlines();
         }
 
         return self.finishNodeList(scratch_start);
+    }
+
+    /// Parse associated type: `type Item` or `type Item: Bound` or `type Item = ConcreteType`
+    fn parseAssociatedType(self: *Parser) ParseError!NodeIndex {
+        const start_span = self.current.span;
+
+        if (!self.match(.kw_type)) {
+            return self.errorAtCurrent("expected 'type'");
+        }
+
+        const name = try self.expectIdentifier("expected associated type name");
+
+        // Optional bounds: type Item: Bound1 + Bound2
+        var bounds = NodeRange.empty;
+        if (self.match(.colon)) {
+            bounds = try self.parseTraitBounds();
+        }
+
+        // Optional concrete type: type Item = ConcreteType (in impls)
+        var value: NodeIndex = null_node;
+        if (self.match(.eq)) {
+            value = try self.parseType();
+        }
+
+        const end_span = self.previous.span;
+
+        return self.ast.addNode(.{
+            .tag = .associated_type,
+            .span = Span.merge(start_span, end_span),
+            .data = .{ .associated_type = .{
+                .name = name,
+                .bounds = bounds,
+                .value = value,
+            } },
+        });
     }
 
     fn parseImplDecl(self: *Parser) ParseError!NodeIndex {
@@ -466,17 +600,19 @@ pub const Parser = struct {
 
         const generics = try self.parseOptionalGenerics();
 
-        // Parse first type (either trait or target)
-        const first_type = try self.parseType();
+        // Parse target type: impl Type or impl Type: Trait
+        const target_type = try self.parseType();
 
-        // Check if this is `impl Trait for Type` or just `impl Type`
+        // Check if this is `impl Type: Trait` or just `impl Type`
         var trait_type: NodeIndex = null_node;
-        var target_type: NodeIndex = first_type;
 
-        if (self.match(.kw_for)) {
-            trait_type = first_type;
-            target_type = try self.parseType();
+        if (self.match(.colon)) {
+            trait_type = try self.parseType();
         }
+
+        // Optional where clause
+        self.skipNewlines();
+        const where_clause = try self.parseOptionalWhereClause();
 
         self.skipNewlines();
         if (!self.match(.lbrace)) {
@@ -498,6 +634,7 @@ pub const Parser = struct {
                 .trait_type = trait_type,
                 .target_type = target_type,
                 .generics = generics,
+                .where_clause = where_clause,
                 .methods = methods,
             } },
         });
@@ -508,9 +645,15 @@ pub const Parser = struct {
 
         self.skipNewlines();
         while (!self.check(.rbrace) and !self.check(.eof)) {
-            const is_pub = self.match(.kw_pub);
-            const method = try self.parseFnDecl(is_pub);
-            try self.scratch.append(self.ast.allocator, method);
+            if (self.check(.kw_type)) {
+                // Associated type definition: type Item = ConcreteType
+                const assoc_type = try self.parseAssociatedType();
+                try self.scratch.append(self.ast.allocator, assoc_type);
+            } else {
+                const is_pub = self.match(.kw_pub);
+                const method = try self.parseFnDecl(is_pub);
+                try self.scratch.append(self.ast.allocator, method);
+            }
             self.skipNewlines();
         }
 
@@ -1705,7 +1848,7 @@ pub const Parser = struct {
             });
         }
 
-        // Named type (possibly generic): Name or Name[T, U]
+        // Named type (possibly generic): Name or Name[T, U] or Name.Member
         if (self.match(.identifier)) {
             const name = try self.ast.addString(self.previous.text);
 
@@ -1742,16 +1885,44 @@ pub const Parser = struct {
                 });
             }
 
+            // Check for qualified type: T.Item
+            if (self.match(.dot)) {
+                const member_name = try self.expectIdentifier("expected member name after '.'");
+                return self.ast.addNode(.{
+                    .tag = .type_qualified,
+                    .span = Span.merge(span, self.previous.span),
+                    .data = .{ .qualified_type = .{
+                        .base_type = base_type,
+                        .member_name = member_name,
+                    } },
+                });
+            }
+
             return base_type;
         }
 
-        // Self type
+        // Self type (possibly qualified): Self or Self.Item
         if (self.match(.kw_Self)) {
-            return self.ast.addNode(.{
+            const base_type = try self.ast.addNode(.{
                 .tag = .self_type,
                 .span = span,
                 .data = .{ .none = {} },
             });
+
+            // Check for qualified type: Self.Item
+            if (self.match(.dot)) {
+                const member_name = try self.expectIdentifier("expected member name after 'Self.'");
+                return self.ast.addNode(.{
+                    .tag = .type_qualified,
+                    .span = Span.merge(span, self.previous.span),
+                    .data = .{ .qualified_type = .{
+                        .base_type = base_type,
+                        .member_name = member_name,
+                    } },
+                });
+            }
+
+            return base_type;
         }
 
         return self.errorAtCurrent("expected type");
@@ -2167,11 +2338,169 @@ test "parser impl block" {
     try std.testing.expect(!ast.hasErrors());
 }
 
+test "parser impl block with trait" {
+    const allocator = std.testing.allocator;
+    // New syntax: impl Type: Trait
+    const source =
+        \\impl i32: Ordered {
+        \\    fn compare(self, other: i32) -> Ordering {
+        \\        return Ordering.Equal
+        \\    }
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
 test "parser trait declaration" {
     const allocator = std.testing.allocator;
     const source =
         \\trait Drawable {
         \\    fn draw(self)
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser trait with super traits" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\trait Ord: Eq + Clone {
+        \\    fn compare(self, other: Self) -> Ordering
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser trait with associated type" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\trait Iterator {
+        \\    type Item
+        \\    fn next(self) -> Self
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser impl with associated type" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\impl List[T]: Iterator {
+        \\    type Item = T
+        \\    fn next(self) -> Self {
+        \\        return self
+        \\    }
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser qualified type Self.Item" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\trait Iterator {
+        \\    type Item
+        \\    fn next(self) -> Self.Item
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser qualified type T.Item" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\fn process[T: Iterator](iter: T) -> T.Item {
+        \\    return iter.next()
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser function with where clause" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\fn merge[K, V](a: Map[K, V], b: Map[K, V]) -> Map[K, V]
+        \\where K: Hashable + Eq, V: Clone
+        \\{
+        \\    return a
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser impl with where clause" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\impl[T] List[T]: Clone
+        \\where T: Clone
+        \\{
+        \\    fn clone(self) -> Self {
+        \\        return self
+        \\    }
+        \\}
+    ;
+    var parser = Parser.init(allocator, source, 0);
+    defer parser.deinit();
+
+    var ast = try parser.parse();
+    defer ast.deinit();
+
+    try std.testing.expect(!ast.hasErrors());
+}
+
+test "parser struct with traits" {
+    const allocator = std.testing.allocator;
+    const source =
+        \\struct Counter: Clone + Eq {
+        \\    value: i32
         \\}
     ;
     var parser = Parser.init(allocator, source, 0);

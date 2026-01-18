@@ -1,0 +1,285 @@
+// Klar Standard Library - Map
+//
+// A hash map implementation for key-value storage.
+
+/// A hash map implemented with quadratic probing.
+pub struct Map[K, V] {
+    entries: [MapEntry[K, V]],
+    len: usize,
+    capacity: usize
+}
+
+/// An entry in the hash map.
+struct MapEntry[K, V] {
+    key: K,
+    value: V,
+    hash: u64,
+    occupied: bool
+}
+
+impl[K: Hash + Eq, V] Map[K, V] {
+    /// Creates a new, empty Map.
+    pub fn new() -> Map[K, V] {
+        return Map { entries: [], len: 0, capacity: 0 }
+    }
+
+    /// Creates a new Map with the specified capacity.
+    pub fn with_capacity(capacity: usize) -> Map[K, V] {
+        return Map { entries: [], len: 0, capacity: capacity }
+    }
+
+    /// Returns the number of elements in the map.
+    pub fn len(self) -> usize {
+        return self.len
+    }
+
+    /// Returns true if the map contains no elements.
+    pub fn is_empty(self) -> bool {
+        return self.len == 0
+    }
+
+    /// Returns the current capacity of the map.
+    pub fn capacity(self) -> usize {
+        return self.capacity
+    }
+
+    /// Inserts a key-value pair into the map.
+    pub fn insert(self, key: K, value: V) -> Option[V] {
+        if self.should_grow() {
+            self.grow()
+        }
+
+        let hash: u64 = self.hash_key(key)
+        let index: usize = self.find_slot(key, hash)
+
+        if self.entries[index].occupied {
+            let old_value: V = self.entries[index].value
+            self.entries[index].value = value
+            return Some(old_value)
+        } else {
+            self.entries[index] = MapEntry {
+                key: key,
+                value: value,
+                hash: hash,
+                occupied: true
+            }
+            self.len = self.len + 1
+            return None
+        }
+    }
+
+    /// Returns a reference to the value corresponding to the key.
+    pub fn get(self, key: K) -> Option[V] {
+        if self.is_empty() {
+            return None
+        }
+
+        let hash: u64 = self.hash_key(key)
+        let index: usize = self.find_slot(key, hash)
+
+        if self.entries[index].occupied {
+            return Some(self.entries[index].value)
+        } else {
+            return None
+        }
+    }
+
+    /// Returns true if the map contains the given key.
+    pub fn contains_key(self, key: K) -> bool {
+        return self.get(key).is_some()
+    }
+
+    /// Removes a key from the map, returning the value if present.
+    pub fn remove(self, key: K) -> Option[V] {
+        if self.is_empty() {
+            return None
+        }
+
+        let hash: u64 = self.hash_key(key)
+        let index: usize = self.find_slot(key, hash)
+
+        if self.entries[index].occupied {
+            self.entries[index].occupied = false
+            self.len = self.len - 1
+            return Some(self.entries[index].value)
+        } else {
+            return None
+        }
+    }
+
+    /// Clears the map, removing all key-value pairs.
+    pub fn clear(self) {
+        for entry in self.entries {
+            entry.occupied = false
+        }
+        self.len = 0
+    }
+
+    /// Returns an iterator over the key-value pairs.
+    pub fn iter(self) -> MapIter[K, V] {
+        return MapIter { entries: self.entries, index: 0 }
+    }
+
+    /// Returns an iterator over the keys.
+    pub fn keys(self) -> Keys[K, V] {
+        return Keys { iter: self.iter() }
+    }
+
+    /// Returns an iterator over the values.
+    pub fn values(self) -> Values[K, V] {
+        return Values { iter: self.iter() }
+    }
+
+    // Private methods
+
+    fn hash_key(self, key: K) -> u64 {
+        var hasher: DefaultHasher = DefaultHasher.new()
+        key.hash(hasher)
+        return hasher.finish()
+    }
+
+    fn find_slot(self, key: K, hash: u64) -> usize {
+        if self.capacity == 0 {
+            return 0
+        }
+
+        var index: usize = (hash as usize) % self.capacity
+        var probe: usize = 0
+
+        while self.entries[index].occupied and self.entries[index].key != key {
+            probe = probe + 1
+            index = (index + probe * probe) % self.capacity
+        }
+
+        return index
+    }
+
+    fn should_grow(self) -> bool {
+        return self.capacity == 0 or self.len * 4 >= self.capacity * 3
+    }
+
+    fn grow(self) {
+        let new_capacity: usize = if self.capacity == 0 {
+            16
+        } else {
+            self.capacity * 2
+        }
+
+        let old_entries: [MapEntry[K, V]] = self.entries
+        self.entries = []
+        self.capacity = new_capacity
+        self.len = 0
+
+        for entry in old_entries {
+            if entry.occupied {
+                self.insert(entry.key, entry.value)
+            }
+        }
+    }
+}
+
+/// Iterator over the entries of a Map.
+pub struct MapIter[K, V] {
+    entries: [MapEntry[K, V]],
+    index: usize
+}
+
+impl[K, V] MapIter[K, V]: Iterator {
+    type Item = (K, V)
+
+    fn next(self) -> Option[(K, V)] {
+        while self.index < self.entries.len() {
+            let entry: MapEntry[K, V] = self.entries[self.index]
+            self.index = self.index + 1
+            if entry.occupied {
+                return Some((entry.key, entry.value))
+            }
+        }
+        return None
+    }
+}
+
+/// Iterator over the keys of a Map.
+pub struct Keys[K, V] {
+    iter: MapIter[K, V]
+}
+
+impl[K, V] Keys[K, V]: Iterator {
+    type Item = K
+
+    fn next(self) -> Option[K] {
+        return self.iter.next().map(fn(pair: (K, V)) -> K { return pair.0 })
+    }
+}
+
+/// Iterator over the values of a Map.
+pub struct Values[K, V] {
+    iter: MapIter[K, V]
+}
+
+impl[K, V] Values[K, V]: Iterator {
+    type Item = V
+
+    fn next(self) -> Option[V] {
+        return self.iter.next().map(fn(pair: (K, V)) -> V { return pair.1 })
+    }
+}
+
+impl[K: Clone + Hash + Eq, V: Clone] Map[K, V]: Clone {
+    fn clone(self) -> Map[K, V] {
+        var result: Map[K, V] = Map.with_capacity(self.capacity)
+        for (k, v) in self.iter() {
+            result.insert(k.clone(), v.clone())
+        }
+        return result
+    }
+}
+
+impl[K: Eq + Hash, V: Eq] Map[K, V]: Eq {
+    fn eq(self, other: Map[K, V]) -> bool {
+        if self.len != other.len {
+            return false
+        }
+        for (k, v) in self.iter() {
+            match other.get(k) {
+                Some(other_v) => {
+                    if v != other_v {
+                        return false
+                    }
+                }
+                None => { return false }
+            }
+        }
+        return true
+    }
+}
+
+impl[K: Debug + Hash + Eq, V: Debug] Map[K, V]: Debug {
+    fn debug(self) -> String {
+        var result: String = "Map({"
+        var first: bool = true
+        for (k, v) in self.iter() {
+            if not first {
+                result = result + ", "
+            }
+            result = result + k.debug() + ": " + v.debug()
+            first = false
+        }
+        return result + "})"
+    }
+}
+
+impl[K: Hash + Eq, V] Map[K, V]: Default {
+    fn default() -> Map[K, V] {
+        return Map.new()
+    }
+}
+
+// Index operator
+impl[K: Hash + Eq, V] Map[K, V]: Index[K] {
+    type Output = V
+
+    fn index(self, key: K) -> V {
+        return self.get(key).unwrap()
+    }
+}
