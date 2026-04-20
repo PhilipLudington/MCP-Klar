@@ -369,8 +369,8 @@ pub const TypePool = struct {
     pub fn init(allocator: Allocator) !TypePool {
         var pool = TypePool{
             .allocator = allocator,
-            .types = .{},
-            .name_map = .{},
+            .types = .empty,
+            .name_map = .empty,
         };
 
         // Pre-populate with built-in types.

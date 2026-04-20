@@ -57,7 +57,7 @@ pub const SymbolTableBuilder = struct {
             .tree = tree,
             .type_pool = type_pool,
             .table = SymbolTable.init(allocator),
-            .node_to_symbol = .{},
+            .node_to_symbol = .empty,
             .current_container = invalid_symbol,
             .file_id = file_id,
         };
@@ -84,7 +84,7 @@ pub const SymbolTableBuilder = struct {
         // Reset to empty state so deinit doesn't double-free.
         self.table = SymbolTable.init(self.allocator);
         self.node_to_symbol.deinit(self.allocator);
-        self.node_to_symbol = .{};
+        self.node_to_symbol = .empty;
         return result;
     }
 

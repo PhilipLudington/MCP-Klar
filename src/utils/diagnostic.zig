@@ -94,7 +94,7 @@ pub const DiagnosticList = struct {
     pub fn init(allocator: Allocator) DiagnosticList {
         return .{
             .allocator = allocator,
-            .items = .{},
+            .items = .empty,
             .has_errors = false,
         };
     }

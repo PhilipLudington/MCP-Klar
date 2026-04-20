@@ -169,29 +169,29 @@ pub const Server = struct {
 
     fn sendResponse(self: *Server, response: protocol.Response) !void {
         // Build JSON response manually
-        var obj = std.json.ObjectMap.init(self.allocator);
-        defer obj.deinit();
+        var obj: std.json.ObjectMap = .empty;
+        defer obj.deinit(self.allocator);
 
-        try obj.put("jsonrpc", .{ .string = "2.0" });
+        try obj.put(self.allocator, "jsonrpc", .{ .string = "2.0" });
 
         if (response.id) |id| {
             switch (id) {
-                .integer => |i| try obj.put("id", .{ .integer = i }),
-                .string => |s| try obj.put("id", .{ .string = s }),
+                .integer => |i| try obj.put(self.allocator, "id", .{ .integer = i }),
+                .string => |s| try obj.put(self.allocator, "id", .{ .string = s }),
             }
         } else {
-            try obj.put("id", .null);
+            try obj.put(self.allocator, "id", .null);
         }
 
         if (response.result) |result| {
-            try obj.put("result", result);
+            try obj.put(self.allocator, "result", result);
         }
 
         if (response.@"error") |err| {
-            var err_obj = std.json.ObjectMap.init(self.allocator);
-            try err_obj.put("code", .{ .integer = err.code });
-            try err_obj.put("message", .{ .string = err.message });
-            try obj.put("error", .{ .object = err_obj });
+            var err_obj: std.json.ObjectMap = .empty;
+            try err_obj.put(self.allocator, "code", .{ .integer = err.code });
+            try err_obj.put(self.allocator, "message", .{ .string = err.message });
+            try obj.put(self.allocator, "error", .{ .object = err_obj });
         }
 
         const json_str = try utils.json.stringifyValue(self.allocator, .{ .object = obj });

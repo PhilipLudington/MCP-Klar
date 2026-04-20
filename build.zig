@@ -22,11 +22,21 @@ pub fn build(b: *std.Build) void {
     options.addOption(bool, "enable_logging", enable_logging);
     const build_options_mod = options.createModule();
 
+    // Zig 0.16 compatibility shims
+    const compat_mod = b.addModule("compat", .{
+        .root_source_file = b.path("src/compat.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     // Runtime configuration module
     const config_mod = b.addModule("config", .{
         .root_source_file = b.path("src/config.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{
+            .{ .name = "compat", .module = compat_mod },
+        },
     });
 
     // Utility module
@@ -34,6 +44,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/utils/root.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{
+            .{ .name = "compat", .module = compat_mod },
+        },
     });
 
     // Compiler module
@@ -43,6 +56,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .imports = &.{
             .{ .name = "utils", .module = utils_mod },
+            .{ .name = "compat", .module = compat_mod },
         },
     });
 
@@ -54,6 +68,7 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "utils", .module = utils_mod },
             .{ .name = "compiler", .module = compiler_mod },
+            .{ .name = "compat", .module = compat_mod },
         },
     });
 
@@ -68,6 +83,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "analysis", .module = analysis_mod },
             .{ .name = "config", .module = config_mod },
             .{ .name = "build_options", .module = build_options_mod },
+            .{ .name = "compat", .module = compat_mod },
         },
     });
 
@@ -85,6 +101,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "mcp", .module = mcp_mod },
                 .{ .name = "config", .module = config_mod },
                 .{ .name = "build_options", .module = build_options_mod },
+                .{ .name = "compat", .module = compat_mod },
             },
         }),
     });
@@ -128,6 +145,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "utils", .module = utils_mod },
                 .{ .name = "compiler", .module = compiler_mod },
                 .{ .name = "analysis", .module = analysis_mod },
+                .{ .name = "compat", .module = compat_mod },
             },
         }),
     });

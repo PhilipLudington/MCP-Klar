@@ -79,7 +79,7 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
     defer analysis.deinit();
 
     // Collect diagnostics
-    var diagnostics = std.ArrayListUnmanaged(CheckResult.DiagnosticInfo){};
+    var diagnostics = std.ArrayListUnmanaged(CheckResult.DiagnosticInfo).empty;
     defer diagnostics.deinit(allocator);
 
     var error_count: usize = 0;
@@ -132,14 +132,14 @@ fn makeDiagnosticInfo(
 
 fn makeErrorResponse(allocator: Allocator, message: []const u8) !std.json.Value {
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
-    try content_obj.put("text", .{ .string = message });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
+    try content_obj.put(allocator, "text", .{ .string = message });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = true });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = true });
 
     return .{ .object = outer };
 }
@@ -154,14 +154,14 @@ fn buildSuccessResponse(
     // Build diagnostics JSON array
     var diag_arr = std.json.Array.init(allocator);
     for (diagnostics) |diag| {
-        var diag_obj = std.json.ObjectMap.init(allocator);
-        try diag_obj.put("severity", .{ .string = diag.severity });
-        try diag_obj.put("message", .{ .string = diag.message });
-        try diag_obj.put("file", .{ .string = diag.file });
-        try diag_obj.put("line", .{ .integer = @intCast(diag.line) });
-        try diag_obj.put("column", .{ .integer = @intCast(diag.column) });
-        try diag_obj.put("endLine", .{ .integer = @intCast(diag.end_line) });
-        try diag_obj.put("endColumn", .{ .integer = @intCast(diag.end_column) });
+        var diag_obj = @as(std.json.ObjectMap, .empty);
+        try diag_obj.put(allocator, "severity", .{ .string = diag.severity });
+        try diag_obj.put(allocator, "message", .{ .string = diag.message });
+        try diag_obj.put(allocator, "file", .{ .string = diag.file });
+        try diag_obj.put(allocator, "line", .{ .integer = @intCast(diag.line) });
+        try diag_obj.put(allocator, "column", .{ .integer = @intCast(diag.column) });
+        try diag_obj.put(allocator, "endLine", .{ .integer = @intCast(diag.end_line) });
+        try diag_obj.put(allocator, "endColumn", .{ .integer = @intCast(diag.end_column) });
         try diag_arr.append(.{ .object = diag_obj });
     }
 
@@ -200,31 +200,31 @@ fn buildSuccessResponse(
 
     // Build MCP response
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
 
     // Duplicate text to ensure it persists
     const text_copy = try allocator.dupe(u8, text_buf[0..text_len]);
-    try content_obj.put("text", .{ .string = text_copy });
+    try content_obj.put(allocator, "text", .{ .string = text_copy });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = error_count > 0 });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = error_count > 0 });
 
     // Add structured data for programmatic access
-    var data_obj = std.json.ObjectMap.init(allocator);
-    try data_obj.put("file", .{ .string = file_path });
-    try data_obj.put("success", .{ .bool = error_count == 0 });
-    try data_obj.put("errorCount", .{ .integer = @intCast(error_count) });
-    try data_obj.put("warningCount", .{ .integer = @intCast(warning_count) });
-    try data_obj.put("diagnostics", .{ .array = diag_arr });
+    var data_obj = @as(std.json.ObjectMap, .empty);
+    try data_obj.put(allocator, "file", .{ .string = file_path });
+    try data_obj.put(allocator, "success", .{ .bool = error_count == 0 });
+    try data_obj.put(allocator, "errorCount", .{ .integer = @intCast(error_count) });
+    try data_obj.put(allocator, "warningCount", .{ .integer = @intCast(warning_count) });
+    try data_obj.put(allocator, "diagnostics", .{ .array = diag_arr });
 
     // Duplicate summary to ensure it persists
     const summary_copy = try allocator.dupe(u8, summary);
-    try data_obj.put("summary", .{ .string = summary_copy });
+    try data_obj.put(allocator, "summary", .{ .string = summary_copy });
 
-    try outer.put("data", .{ .object = data_obj });
+    try outer.put(allocator, "data", .{ .object = data_obj });
 
     return .{ .object = outer };
 }
@@ -254,9 +254,9 @@ test "execute with valid content parameter" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
 
     const result = try execute(allocator, .{ .object = params });
 
@@ -275,9 +275,9 @@ test "execute with type error" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x: bool = 42" }); // Type mismatch
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x: bool = 42" }); // Type mismatch
 
     const result = try execute(allocator, .{ .object = params });
 
@@ -292,9 +292,9 @@ test "execute with undefined identifier" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = undefined_var" });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = undefined_var" });
 
     const result = try execute(allocator, .{ .object = params });
 
@@ -309,9 +309,9 @@ test "execute with function declaration" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string =
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string =
         \\fn add(a: i32, b: i32) -> i32 {
         \\    a + b
         \\}
@@ -330,9 +330,9 @@ test "execute with struct declaration" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string =
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string =
         \\struct Point {
         \\    x: i32,
         \\    y: i32

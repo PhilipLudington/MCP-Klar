@@ -31,7 +31,7 @@ pub const ReferenceIndex = struct {
         indices: std.ArrayListUnmanaged(usize),
 
         fn init() RefList {
-            return .{ .indices = .{} };
+            return .{ .indices = .empty };
         }
 
         fn deinit(self: *RefList, allocator: Allocator) void {
@@ -50,7 +50,7 @@ pub const ReferenceIndex = struct {
     pub fn init(allocator: Allocator) ReferenceIndex {
         return .{
             .allocator = allocator,
-            .symbol_to_refs = .{},
+            .symbol_to_refs = .empty,
         };
     }
 
@@ -263,7 +263,7 @@ pub fn findReferences(
     const indices = index.getReferenceIndices(symbol_id);
 
     // Build reference info list.
-    var refs = std.ArrayListUnmanaged(ReferenceResult.ReferenceInfo){};
+    var refs = std.ArrayListUnmanaged(ReferenceResult.ReferenceInfo).empty;
     defer refs.deinit(allocator);
 
     for (indices) |ref_idx| {
@@ -321,7 +321,7 @@ pub fn filterReferencesByKind(
 ) ![]const usize {
     const all_indices = index.getReferenceIndices(symbol_id);
 
-    var filtered = std.ArrayListUnmanaged(usize){};
+    var filtered = std.ArrayListUnmanaged(usize).empty;
     defer filtered.deinit(allocator);
 
     for (all_indices) |ref_idx| {

@@ -5,6 +5,7 @@
 //! Supports context-aware completions (after `.`, in type positions, etc.).
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 const parser = @import("compiler").parser;
 const checker = @import("compiler").checker;
@@ -84,7 +85,7 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
     // Get the source code
     const source = if (content) |c| c else blk: {
         // Read from file
-        const file_content = std.fs.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
+        const file_content = compat.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
             var buf: [256]u8 = undefined;
             const msg = std.fmt.bufPrint(&buf, "Failed to read file '{s}': {s}", .{ file_path, @errorName(err) }) catch "Failed to read file";
             return makeErrorResponse(allocator, msg);
@@ -191,90 +192,90 @@ fn buildCompletionsResponse(
 
     // Build MCP response
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
 
     const text_copy = try allocator.dupe(u8, text_buf[0..text_len]);
-    try content_obj.put("text", .{ .string = text_copy });
+    try content_obj.put(allocator, "text", .{ .string = text_copy });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = false });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = false });
 
     // Add structured data
-    var data_obj = std.json.ObjectMap.init(allocator);
-    try data_obj.put("file", .{ .string = file_path });
-    try data_obj.put("line", .{ .integer = @intCast(line) });
-    try data_obj.put("column", .{ .integer = @intCast(column) });
+    var data_obj = @as(std.json.ObjectMap, .empty);
+    try data_obj.put(allocator, "file", .{ .string = file_path });
+    try data_obj.put(allocator, "line", .{ .integer = @intCast(line) });
+    try data_obj.put(allocator, "column", .{ .integer = @intCast(column) });
 
     const context_copy = try allocator.dupe(u8, context_str);
-    try data_obj.put("context", .{ .string = context_copy });
+    try data_obj.put(allocator, "context", .{ .string = context_copy });
 
     if (result.receiver_type) |recv| {
-        try data_obj.put("receiver_type", .{ .string = recv });
+        try data_obj.put(allocator, "receiver_type", .{ .string = recv });
     } else {
-        try data_obj.put("receiver_type", .null);
+        try data_obj.put(allocator, "receiver_type", .null);
     }
 
     if (prefix) |p_str| {
-        try data_obj.put("prefix", .{ .string = p_str });
+        try data_obj.put(allocator, "prefix", .{ .string = p_str });
     } else {
-        try data_obj.put("prefix", .null);
+        try data_obj.put(allocator, "prefix", .null);
     }
 
-    try data_obj.put("is_incomplete", .{ .bool = result.is_incomplete });
-    try data_obj.put("count", .{ .integer = @intCast(items.len) });
+    try data_obj.put(allocator, "is_incomplete", .{ .bool = result.is_incomplete });
+    try data_obj.put(allocator, "count", .{ .integer = @intCast(items.len) });
 
     // Build completions array
     var completions_arr = std.json.Array.init(allocator);
     for (items) |item| {
-        var item_obj = std.json.ObjectMap.init(allocator);
+        var item_obj = @as(std.json.ObjectMap, .empty);
 
         const label_copy = try allocator.dupe(u8, item.label);
-        try item_obj.put("label", .{ .string = label_copy });
+        try item_obj.put(allocator, "label", .{ .string = label_copy });
 
         const kind_name = @tagName(item.kind);
         const kind_copy = try allocator.dupe(u8, kind_name);
-        try item_obj.put("kind", .{ .string = kind_copy });
+        try item_obj.put(allocator, "kind", .{ .string = kind_copy });
 
-        try item_obj.put("lsp_kind", .{ .integer = @intCast(item.kind.toLspKind()) });
+        try item_obj.put(allocator, "lsp_kind", .{ .integer = @intCast(item.kind.toLspKind()) });
 
         if (item.detail) |detail| {
             const detail_copy = try allocator.dupe(u8, detail);
-            try item_obj.put("detail", .{ .string = detail_copy });
+            try item_obj.put(allocator, "detail", .{ .string = detail_copy });
         } else {
-            try item_obj.put("detail", .null);
+            try item_obj.put(allocator, "detail", .null);
         }
 
         if (item.documentation) |doc| {
             const doc_copy = try allocator.dupe(u8, doc);
-            try item_obj.put("documentation", .{ .string = doc_copy });
+            try item_obj.put(allocator, "documentation", .{ .string = doc_copy });
         } else {
-            try item_obj.put("documentation", .null);
+            try item_obj.put(allocator, "documentation", .null);
         }
 
         if (item.insert_text) |insert| {
             const insert_copy = try allocator.dupe(u8, insert);
-            try item_obj.put("insert_text", .{ .string = insert_copy });
+            try item_obj.put(allocator, "insert_text", .{ .string = insert_copy });
         } else {
-            try item_obj.put("insert_text", .null);
+            try item_obj.put(allocator, "insert_text", .null);
         }
 
         if (item.sort_text) |sort| {
             const sort_copy = try allocator.dupe(u8, sort);
-            try item_obj.put("sort_text", .{ .string = sort_copy });
+            try item_obj.put(allocator, "sort_text", .{ .string = sort_copy });
         } else {
-            try item_obj.put("sort_text", .null);
+            try item_obj.put(allocator, "sort_text", .null);
         }
 
-        try item_obj.put("deprecated", .{ .bool = item.deprecated });
+        try item_obj.put(allocator, "deprecated", .{ .bool = item.deprecated });
 
         try completions_arr.append(.{ .object = item_obj });
     }
-    try data_obj.put("completions", .{ .array = completions_arr });
+    try data_obj.put(allocator, "completions", .{ .array = completions_arr });
 
-    try outer.put("data", .{ .object = data_obj });
+    try outer.put(allocator, "data", .{ .object = data_obj });
 
     return .{ .object = outer };
 }
@@ -297,14 +298,14 @@ fn contextToString(context: CompletionContext) []const u8 {
 
 fn makeErrorResponse(allocator: Allocator, message: []const u8) !std.json.Value {
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
-    try content_obj.put("text", .{ .string = message });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
+    try content_obj.put(allocator, "text", .{ .string = message });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = true });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = true });
 
     return .{ .object = outer };
 }
@@ -326,9 +327,9 @@ test "execute with missing line parameter" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
     // Missing line and column
 
     const result = try execute(allocator, .{ .object = params });
@@ -342,11 +343,11 @@ test "execute with valid parameters - expression context" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = " });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 9 }); // After =
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = " });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 9 }); // After =
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -366,11 +367,11 @@ test "execute with type position context" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x: " });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 8 }); // After :
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x: " });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 8 }); // After :
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -398,11 +399,11 @@ test "execute with dot access context" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "point." });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 7 }); // After .
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "point." });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 7 }); // After .
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -418,12 +419,12 @@ test "execute with prefix filter" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x: i" });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 9 });
-    try params.put("prefix", .{ .string = "i" });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x: i" });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 9 });
+    try params.put(allocator, "prefix", .{ .string = "i" });
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -446,11 +447,11 @@ test "execute returns lsp_kind" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = " });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 9 });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = " });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 9 });
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -473,11 +474,11 @@ test "execute with enum access context" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "Color::" });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 8 }); // After ::
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "Color::" });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 8 }); // After ::
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -493,11 +494,11 @@ test "execute with return type context" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "fn foo() -> " });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 13 }); // After ->
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "fn foo() -> " });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 13 }); // After ->
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;

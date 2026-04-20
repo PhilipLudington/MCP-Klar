@@ -68,7 +68,7 @@ pub const Scope = struct {
 
     pub fn init() Scope {
         return .{
-            .symbols = .{},
+            .symbols = .empty,
             .parent = null,
         };
     }
@@ -121,9 +121,9 @@ pub const Checker = struct {
             .tree = tree,
             .type_pool = try TypePool.init(allocator),
             .diagnostics = DiagnosticList.init(allocator),
-            .scopes = .{},
+            .scopes = .empty,
             .current_return_type = BuiltinTypes.void_type,
-            .expr_types = .{},
+            .expr_types = .empty,
             .self_type = invalid_type,
         };
 
@@ -1092,7 +1092,7 @@ pub const Checker = struct {
         const data = node.data.lambda;
 
         // Collect parameter types.
-        var param_types = std.ArrayListUnmanaged(TypeId){};
+        var param_types = std.ArrayListUnmanaged(TypeId).empty;
         defer param_types.deinit(self.allocator);
 
         try self.pushScope();
@@ -1204,7 +1204,7 @@ pub const Checker = struct {
 
         const base = try self.resolveTypeNode(data.base_type);
 
-        var args = std.ArrayListUnmanaged(TypeId){};
+        var args = std.ArrayListUnmanaged(TypeId).empty;
         defer args.deinit(self.allocator);
 
         for (data.type_args.start..data.type_args.end) |i| {
@@ -1218,7 +1218,7 @@ pub const Checker = struct {
     fn resolveFunctionType(self: *Checker, node: Node) CheckerError!TypeId {
         const data = node.data.fn_type;
 
-        var params = std.ArrayListUnmanaged(TypeId){};
+        var params = std.ArrayListUnmanaged(TypeId).empty;
         defer params.deinit(self.allocator);
 
         for (data.param_types.start..data.param_types.end) |i| {
@@ -1262,7 +1262,7 @@ pub const Checker = struct {
     fn resolveTupleType(self: *Checker, node: Node) CheckerError!TypeId {
         const range = node.data.range;
 
-        var elements = std.ArrayListUnmanaged(TypeId){};
+        var elements = std.ArrayListUnmanaged(TypeId).empty;
         defer elements.deinit(self.allocator);
 
         for (range.start..range.end) |i| {
@@ -1276,7 +1276,7 @@ pub const Checker = struct {
     // === Helper Functions ===
 
     fn resolveFnType(self: *Checker, data: @TypeOf(@as(Node.Data, undefined).fn_decl)) CheckerError!TypeId {
-        var params = std.ArrayListUnmanaged(TypeId){};
+        var params = std.ArrayListUnmanaged(TypeId).empty;
         defer params.deinit(self.allocator);
 
         for (data.params.start..data.params.end) |i| {
@@ -1296,7 +1296,7 @@ pub const Checker = struct {
     }
 
     fn registerStructType(self: *Checker, _: NodeIndex, name: []const u8, data: @TypeOf(@as(Node.Data, undefined).struct_decl)) CheckerError!TypeId {
-        var fields = std.ArrayListUnmanaged(types.Field){};
+        var fields = std.ArrayListUnmanaged(types.Field).empty;
         defer fields.deinit(self.allocator);
 
         for (data.fields.start..data.fields.end) |i| {
@@ -1316,7 +1316,7 @@ pub const Checker = struct {
             }
         }
 
-        var generic_params = std.ArrayListUnmanaged(types.GenericParam){};
+        var generic_params = std.ArrayListUnmanaged(types.GenericParam).empty;
         defer generic_params.deinit(self.allocator);
         // TODO: Process generic parameters.
 
@@ -1338,7 +1338,7 @@ pub const Checker = struct {
     }
 
     fn registerEnumType(self: *Checker, _: NodeIndex, name: []const u8, data: @TypeOf(@as(Node.Data, undefined).enum_decl)) CheckerError!TypeId {
-        var variants = std.ArrayListUnmanaged(types.Variant){};
+        var variants = std.ArrayListUnmanaged(types.Variant).empty;
         defer variants.deinit(self.allocator);
 
         for (data.variants.start..data.variants.end) |i| {
@@ -1361,7 +1361,7 @@ pub const Checker = struct {
             }
         }
 
-        var generic_params = std.ArrayListUnmanaged(types.GenericParam){};
+        var generic_params = std.ArrayListUnmanaged(types.GenericParam).empty;
         defer generic_params.deinit(self.allocator);
 
         const owned_name = try self.allocator.dupe(u8, name);
@@ -1382,7 +1382,7 @@ pub const Checker = struct {
     }
 
     fn registerTraitType(self: *Checker, name: []const u8, data: @TypeOf(@as(Node.Data, undefined).trait_decl)) CheckerError!TypeId {
-        var methods = std.ArrayListUnmanaged(types.Method){};
+        var methods = std.ArrayListUnmanaged(types.Method).empty;
         defer methods.deinit(self.allocator);
 
         for (data.methods.start..data.methods.end) |i| {
@@ -1391,7 +1391,7 @@ pub const Checker = struct {
                 const method_data = method.data.fn_decl;
                 const method_name = self.tree.getString(method_data.name) orelse continue;
 
-                var params = std.ArrayListUnmanaged(TypeId){};
+                var params = std.ArrayListUnmanaged(TypeId).empty;
                 defer params.deinit(self.allocator);
 
                 for (method_data.params.start..method_data.params.end) |j| {
@@ -1419,7 +1419,7 @@ pub const Checker = struct {
             }
         }
 
-        var generic_params = std.ArrayListUnmanaged(types.GenericParam){};
+        var generic_params = std.ArrayListUnmanaged(types.GenericParam).empty;
         defer generic_params.deinit(self.allocator);
 
         const owned_name = try self.allocator.dupe(u8, name);

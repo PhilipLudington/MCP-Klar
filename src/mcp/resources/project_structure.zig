@@ -4,6 +4,7 @@
 //! source files and their organization within the project.
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 
 const log = std.log.scoped(.project_structure);
@@ -31,7 +32,7 @@ const max_files: usize = 1000;
 pub fn execute(allocator: Allocator, requested_uri: []const u8) !std.json.Value {
     _ = requested_uri;
 
-    var structure_builder = std.ArrayListUnmanaged(u8){};
+    var structure_builder = std.ArrayListUnmanaged(u8).empty;
     defer structure_builder.deinit(allocator);
 
     // Build the project structure
@@ -43,26 +44,26 @@ pub fn execute(allocator: Allocator, requested_uri: []const u8) !std.json.Value 
     // Build MCP resource response
     var contents_arr = std.json.Array.init(allocator);
 
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("uri", .{ .string = uri });
-    try content_obj.put("mimeType", .{ .string = mime_type });
-    try content_obj.put("text", .{ .string = structure_content });
+    var content_obj: std.json.ObjectMap = .empty;
+    try content_obj.put(allocator, "uri", .{ .string = uri });
+    try content_obj.put(allocator, "mimeType", .{ .string = mime_type });
+    try content_obj.put(allocator, "text", .{ .string = structure_content });
     try contents_arr.append(.{ .object = content_obj });
 
-    var result = std.json.ObjectMap.init(allocator);
-    try result.put("contents", .{ .array = contents_arr });
+    var result: std.json.ObjectMap = .empty;
+    try result.put(allocator, "contents", .{ .array = contents_arr });
 
     return .{ .object = result };
 }
 
 /// Build the project structure string.
 fn buildProjectStructure(allocator: Allocator, output: *std.ArrayListUnmanaged(u8)) !void {
-    const writer = output.writer(allocator);
+    const writer = compat.listWriter(output, allocator);
 
     try writer.writeAll("# Klar Project Structure\n\n");
 
     // Get current working directory
-    const cwd = std.fs.cwd();
+    const cwd = compat.cwd();
 
     // Check for klar.json to identify project root
     const has_klar_json = blk: {
@@ -95,7 +96,7 @@ fn buildProjectStructure(allocator: Allocator, output: *std.ArrayListUnmanaged(u
 /// Recursively scan a directory for Klar files.
 fn scanDirectory(
     allocator: Allocator,
-    dir: std.fs.Dir,
+    dir: compat.Dir,
     path: []const u8,
     output: *std.ArrayListUnmanaged(u8),
     depth: usize,
@@ -105,7 +106,7 @@ fn scanDirectory(
     if (depth > max_depth) return;
     if (file_count.* >= max_files) return;
 
-    const writer = output.writer(allocator);
+    const writer = compat.listWriter(output, allocator);
 
     // Open the directory for iteration
     var iter_dir = dir.openDir(path, .{ .iterate = true }) catch |err| {
@@ -116,7 +117,7 @@ fn scanDirectory(
     defer iter_dir.close();
 
     // Collect entries to sort them
-    var entries = std.ArrayListUnmanaged(Entry){};
+    var entries = std.ArrayListUnmanaged(Entry).empty;
     defer entries.deinit(allocator);
 
     var iter = iter_dir.iterate();
@@ -180,7 +181,7 @@ fn scanDirectory(
 
 const Entry = struct {
     name: []const u8,
-    kind: std.fs.Dir.Entry.Kind,
+    kind: compat.Stat.Kind,
 };
 
 fn entryLessThan(_: void, a: Entry, b: Entry) bool {
@@ -223,10 +224,10 @@ test "execute returns valid response" {
 }
 
 test "writeIndent produces correct indentation" {
-    var list = std.ArrayListUnmanaged(u8){};
+    var list = std.ArrayListUnmanaged(u8).empty;
     defer list.deinit(std.testing.allocator);
 
-    const writer = list.writer(std.testing.allocator);
+    const writer = compat.listWriter(&list, std.testing.allocator);
 
     try writeIndent(writer, 0);
     try std.testing.expectEqualStrings("", list.items);

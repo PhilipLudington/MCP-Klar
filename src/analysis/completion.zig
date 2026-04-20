@@ -181,7 +181,7 @@ pub const CompletionEngine = struct {
         // Determine completion context.
         const context = self.analyzeContext(offset);
 
-        var items = std.ArrayListUnmanaged(CompletionItem){};
+        var items = std.ArrayListUnmanaged(CompletionItem).empty;
         var receiver_type: ?[]const u8 = null;
 
         switch (context) {
@@ -775,7 +775,7 @@ pub fn filterByPrefix(
     items: []const CompletionItem,
     prefix: []const u8,
 ) ![]CompletionItem {
-    var filtered = std.ArrayListUnmanaged(CompletionItem){};
+    var filtered = std.ArrayListUnmanaged(CompletionItem).empty;
 
     for (items) |item| {
         if (std.mem.startsWith(u8, item.label, prefix)) {

@@ -35,9 +35,9 @@ pub const Router = struct {
     pub fn init(allocator: Allocator) Router {
         return .{
             .allocator = allocator,
-            .handlers = .{},
-            .resource_handlers = .{},
-            .resource_defs = .{},
+            .handlers = .empty,
+            .resource_handlers = .empty,
+            .resource_defs = .empty,
         };
     }
 
@@ -86,36 +86,38 @@ pub const Router = struct {
     fn handleInitialize(self: *Router, params: ?std.json.Value) Response {
         _ = params;
 
-        var result = std.json.ObjectMap.init(self.allocator);
+        var result: std.json.ObjectMap = .empty;
 
         // Build capabilities
-        var capabilities = std.json.ObjectMap.init(self.allocator);
+        var capabilities: std.json.ObjectMap = .empty;
 
         // Tools capability
-        var tools_cap = std.json.ObjectMap.init(self.allocator);
-        tools_cap.put("listChanged", .{ .bool = false }) catch {};
-        capabilities.put("tools", .{ .object = tools_cap }) catch {};
+        var tools_cap: std.json.ObjectMap = .empty;
+        tools_cap.put(self.allocator, "listChanged", .{ .bool = false }) catch {};
+        capabilities.put(self.allocator, "tools", .{ .object = tools_cap }) catch {};
 
         // Resources capability
-        var resources_cap = std.json.ObjectMap.init(self.allocator);
-        resources_cap.put("subscribe", .{ .bool = false }) catch {};
-        resources_cap.put("listChanged", .{ .bool = false }) catch {};
-        capabilities.put("resources", .{ .object = resources_cap }) catch {};
+        var resources_cap: std.json.ObjectMap = .empty;
+        resources_cap.put(self.allocator, "subscribe", .{ .bool = false }) catch {};
+        resources_cap.put(self.allocator, "listChanged", .{ .bool = false }) catch {};
+        capabilities.put(self.allocator, "resources", .{ .object = resources_cap }) catch {};
 
         // Build server info
-        var server_info = std.json.ObjectMap.init(self.allocator);
-        server_info.put("name", .{ .string = "mcp-klar" }) catch {};
-        server_info.put("version", .{ .string = "0.1.0" }) catch {};
+        var server_info: std.json.ObjectMap = .empty;
+        server_info.put(self.allocator, "name", .{ .string = "mcp-klar" }) catch {};
+        server_info.put(self.allocator, "version", .{ .string = "0.1.0" }) catch {};
 
-        result.put("protocolVersion", .{ .string = "2024-11-05" }) catch {};
-        result.put("capabilities", .{ .object = capabilities }) catch {};
-        result.put("serverInfo", .{ .object = server_info }) catch {};
+        result.put(self.allocator, "protocolVersion", .{ .string = "2024-11-05" }) catch {};
+        result.put(self.allocator, "capabilities", .{ .object = capabilities }) catch {};
+        result.put(self.allocator, "serverInfo", .{ .object = server_info }) catch {};
 
         return protocol.successResponse(null, .{ .object = result });
     }
 
     fn handleInitialized(self: *Router) Response {
-        return protocol.successResponse(null, .{ .object = std.json.ObjectMap.init(self.allocator) });
+        _ = self;
+        const empty_obj: std.json.ObjectMap = .empty;
+        return protocol.successResponse(null, .{ .object = empty_obj });
     }
 
     fn handleToolsList(self: *Router) Response {
@@ -168,8 +170,8 @@ pub const Router = struct {
             .{ .name = "kind", .typ = "string", .description = "Filter by symbol kind (function, struct, enum, variable, etc.)", .required = false },
         });
 
-        var result = std.json.ObjectMap.init(self.allocator);
-        result.put("tools", .{ .array = tools }) catch {};
+        var result: std.json.ObjectMap = .empty;
+        result.put(self.allocator, "tools", .{ .array = tools }) catch {};
 
         return protocol.successResponse(null, .{ .object = result });
     }
@@ -182,30 +184,30 @@ pub const Router = struct {
     };
 
     fn addTool(self: *Router, tools: *std.json.Array, name: []const u8, description: []const u8, properties: []const ToolProperty) void {
-        var tool = std.json.ObjectMap.init(self.allocator);
-        tool.put("name", .{ .string = name }) catch {};
-        tool.put("description", .{ .string = description }) catch {};
+        var tool: std.json.ObjectMap = .empty;
+        tool.put(self.allocator, "name", .{ .string = name }) catch {};
+        tool.put(self.allocator, "description", .{ .string = description }) catch {};
 
-        var schema = std.json.ObjectMap.init(self.allocator);
-        schema.put("type", .{ .string = "object" }) catch {};
+        var schema: std.json.ObjectMap = .empty;
+        schema.put(self.allocator, "type", .{ .string = "object" }) catch {};
 
-        var props = std.json.ObjectMap.init(self.allocator);
+        var props: std.json.ObjectMap = .empty;
         var required_arr = std.json.Array.init(self.allocator);
 
         for (properties) |prop| {
-            var prop_obj = std.json.ObjectMap.init(self.allocator);
-            prop_obj.put("type", .{ .string = prop.typ }) catch {};
-            prop_obj.put("description", .{ .string = prop.description }) catch {};
-            props.put(prop.name, .{ .object = prop_obj }) catch {};
+            var prop_obj: std.json.ObjectMap = .empty;
+            prop_obj.put(self.allocator, "type", .{ .string = prop.typ }) catch {};
+            prop_obj.put(self.allocator, "description", .{ .string = prop.description }) catch {};
+            props.put(self.allocator, prop.name, .{ .object = prop_obj }) catch {};
 
             if (prop.required) {
                 required_arr.append(.{ .string = prop.name }) catch {};
             }
         }
 
-        schema.put("properties", .{ .object = props }) catch {};
-        schema.put("required", .{ .array = required_arr }) catch {};
-        tool.put("inputSchema", .{ .object = schema }) catch {};
+        schema.put(self.allocator, "properties", .{ .object = props }) catch {};
+        schema.put(self.allocator, "required", .{ .array = required_arr }) catch {};
+        tool.put(self.allocator, "inputSchema", .{ .object = schema }) catch {};
 
         tools.append(.{ .object = tool }) catch {};
     }
@@ -242,16 +244,16 @@ pub const Router = struct {
         var resources = std.json.Array.init(self.allocator);
 
         for (self.resource_defs.items) |def| {
-            var resource = std.json.ObjectMap.init(self.allocator);
-            resource.put("uri", .{ .string = def.uri }) catch {};
-            resource.put("name", .{ .string = def.name }) catch {};
-            resource.put("description", .{ .string = def.description }) catch {};
-            resource.put("mimeType", .{ .string = def.mime_type }) catch {};
+            var resource: std.json.ObjectMap = .empty;
+            resource.put(self.allocator, "uri", .{ .string = def.uri }) catch {};
+            resource.put(self.allocator, "name", .{ .string = def.name }) catch {};
+            resource.put(self.allocator, "description", .{ .string = def.description }) catch {};
+            resource.put(self.allocator, "mimeType", .{ .string = def.mime_type }) catch {};
             resources.append(.{ .object = resource }) catch {};
         }
 
-        var result = std.json.ObjectMap.init(self.allocator);
-        result.put("resources", .{ .array = resources }) catch {};
+        var result: std.json.ObjectMap = .empty;
+        result.put(self.allocator, "resources", .{ .array = resources }) catch {};
 
         return protocol.successResponse(null, .{ .object = result });
     }

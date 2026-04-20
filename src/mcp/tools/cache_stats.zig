@@ -26,20 +26,20 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
 
     // Build response explaining that cache stats require server integration.
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
-    try content_obj.put("text", .{ .string = "Cache statistics are tracked at the server level. Use the server's getCacheStats() method for actual statistics." });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
+    try content_obj.put(allocator, "text", .{ .string = "Cache statistics are tracked at the server level. Use the server's getCacheStats() method for actual statistics." });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = false });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = false });
 
     // Add placeholder stats data.
-    var data_obj = std.json.ObjectMap.init(allocator);
-    try data_obj.put("note", .{ .string = "Cache statistics require server-level integration" });
-    try data_obj.put("cache_enabled", .{ .bool = true });
-    try outer.put("data", .{ .object = data_obj });
+    var data_obj = @as(std.json.ObjectMap, .empty);
+    try data_obj.put(allocator, "note", .{ .string = "Cache statistics require server-level integration" });
+    try data_obj.put(allocator, "cache_enabled", .{ .bool = true });
+    try outer.put(allocator, "data", .{ .object = data_obj });
 
     return .{ .object = outer };
 }

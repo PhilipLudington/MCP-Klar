@@ -629,13 +629,13 @@ pub const Ast = struct {
 
     pub fn init(allocator: Allocator, source: []const u8, file_id: u32) Ast {
         return .{
-            .nodes = .{},
-            .strings = .{},
+            .nodes = .empty,
+            .strings = .empty,
             .source = source,
             .file_id = file_id,
             .root = null_node,
             .allocator = allocator,
-            .errors = .{},
+            .errors = .empty,
         };
     }
 

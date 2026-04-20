@@ -180,7 +180,7 @@ pub const Scope = struct {
             .parent = parent,
             .kind = kind,
             .span = span,
-            .symbols = .{},
+            .symbols = .empty,
         };
     }
 
@@ -252,13 +252,13 @@ pub const SymbolTable = struct {
     pub fn init(allocator: Allocator) SymbolTable {
         return .{
             .allocator = allocator,
-            .symbols = .{},
-            .scopes = .{},
-            .references = .{},
-            .position_to_definition = .{},
-            .position_to_reference = .{},
-            .scope_stack = .{},
-            .strings = .{},
+            .symbols = .empty,
+            .scopes = .empty,
+            .references = .empty,
+            .position_to_definition = .empty,
+            .position_to_reference = .empty,
+            .scope_stack = .empty,
+            .strings = .empty,
         };
     }
 

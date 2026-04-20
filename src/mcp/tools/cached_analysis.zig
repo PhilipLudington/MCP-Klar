@@ -5,6 +5,7 @@
 //! without requiring changes to the tool handler signature.
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 const parser_mod = @import("compiler").parser;
 const checker_mod = @import("compiler").checker;
@@ -106,7 +107,7 @@ pub fn getSourceContent(
     }
 
     // Read from file.
-    const file_content = std.fs.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
+    const file_content = compat.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
         return err;
     };
 

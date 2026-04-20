@@ -46,7 +46,7 @@ pub const Parser = struct {
             .ast = Ast.init(allocator, source, file_id),
             .current = first_token,
             .previous = first_token,
-            .scratch = .{},
+            .scratch = .empty,
         };
     }
 
@@ -1995,17 +1995,17 @@ pub const Parser = struct {
         const items = self.scratch.items[scratch_start..];
         const count = items.len;
 
-        // Reset scratch buffer
-        self.scratch.shrinkRetainingCapacity(scratch_start);
-
         if (count == 0) {
+            self.scratch.shrinkRetainingCapacity(scratch_start);
             return NodeRange.empty;
         }
 
-        // The scratch buffer contains indices into ast.nodes
-        // Return the range spanning from first to last index + 1
+        // Read indices BEFORE shrinking: Zig 0.16's shrinkRetainingCapacity
+        // memsets the shrunken region to undefined.
         const range_start: NodeIndex = items[0];
         const range_end: NodeIndex = items[count - 1] + 1;
+
+        self.scratch.shrinkRetainingCapacity(scratch_start);
 
         return NodeRange{
             .start = range_start,

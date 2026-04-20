@@ -31,14 +31,14 @@ pub fn execute(allocator: Allocator, requested_uri: []const u8) !std.json.Value 
     // MCP resources/read returns { contents: [{ uri, mimeType, text }] }
     var contents_arr = std.json.Array.init(allocator);
 
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("uri", .{ .string = uri });
-    try content_obj.put("mimeType", .{ .string = mime_type });
-    try content_obj.put("text", .{ .string = docs_content });
+    var content_obj: std.json.ObjectMap = .empty;
+    try content_obj.put(allocator, "uri", .{ .string = uri });
+    try content_obj.put(allocator, "mimeType", .{ .string = mime_type });
+    try content_obj.put(allocator, "text", .{ .string = docs_content });
     try contents_arr.append(.{ .object = content_obj });
 
-    var result = std.json.ObjectMap.init(allocator);
-    try result.put("contents", .{ .array = contents_arr });
+    var result: std.json.ObjectMap = .empty;
+    try result.put(allocator, "contents", .{ .array = contents_arr });
 
     return .{ .object = result };
 }

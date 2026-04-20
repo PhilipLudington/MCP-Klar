@@ -1,6 +1,7 @@
 //! stdio transport for MCP protocol.
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 
 const log = std.log.scoped(.transport);
@@ -8,27 +9,27 @@ const log = std.log.scoped(.transport);
 /// Transport for reading/writing JSON-RPC messages over stdio.
 pub const StdioTransport = struct {
     allocator: Allocator,
-    stdin: std.fs.File,
-    stdout: std.fs.File,
+    stdin: compat.File,
+    stdout: compat.File,
     line_buffer: std.ArrayListUnmanaged(u8),
     read_buffer: [4096]u8,
 
     pub fn init(allocator: Allocator) StdioTransport {
         return .{
             .allocator = allocator,
-            .stdin = std.fs.File{ .handle = std.posix.STDIN_FILENO },
-            .stdout = std.fs.File{ .handle = std.posix.STDOUT_FILENO },
-            .line_buffer = .{},
+            .stdin = compat.File{ .handle = std.posix.STDIN_FILENO },
+            .stdout = compat.File{ .handle = std.posix.STDOUT_FILENO },
+            .line_buffer = .empty,
             .read_buffer = undefined,
         };
     }
 
-    pub fn initWithFiles(allocator: Allocator, stdin: std.fs.File, stdout: std.fs.File) StdioTransport {
+    pub fn initWithFiles(allocator: Allocator, stdin: compat.File, stdout: compat.File) StdioTransport {
         return .{
             .allocator = allocator,
             .stdin = stdin,
             .stdout = stdout,
-            .line_buffer = .{},
+            .line_buffer = .empty,
             .read_buffer = undefined,
         };
     }
@@ -75,6 +76,6 @@ pub const StdioTransport = struct {
 test "StdioTransport init/deinit" {
     // Use initWithFiles for testing to avoid stdin/stdout issues
     const allocator = std.testing.allocator;
-    var buffer: std.ArrayListUnmanaged(u8) = .{};
+    var buffer: std.ArrayListUnmanaged(u8) = .empty;
     defer buffer.deinit(allocator);
 }

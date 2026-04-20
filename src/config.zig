@@ -10,6 +10,7 @@
 //! 3. Default values
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 
 const log = std.log.scoped(.config);
@@ -42,7 +43,7 @@ pub const RuntimeConfig = struct {
             .project_root = ".",
             .source_dirs = &.{},
             .verbose = false,
-            .owned_strings = .{},
+            .owned_strings = .empty,
         };
 
         // First, try to load klar.json
@@ -70,7 +71,7 @@ pub const RuntimeConfig = struct {
     fn loadProjectConfig(self: *RuntimeConfig) !void {
         const config_path = findConfigFile() orelse return error.ConfigNotFound;
 
-        const file = try std.fs.cwd().openFile(config_path, .{});
+        const file = try compat.cwd().openFile(config_path, .{});
         defer file.close();
 
         const content = try file.readToEndAlloc(self.allocator, 1024 * 1024);
@@ -83,7 +84,7 @@ pub const RuntimeConfig = struct {
     fn findConfigFile() ?[]const u8 {
         // For now, just check current directory
         const config_path = "klar.json";
-        if (std.fs.cwd().statFile(config_path)) |_| {
+        if (compat.cwd().statFile(config_path)) |_| {
             return config_path;
         } else |_| {
             return null;
@@ -126,7 +127,7 @@ pub const RuntimeConfig = struct {
         // Parse source_dirs
         if (root.get("source_dirs")) |val| {
             if (val == .array) {
-                var dirs = std.ArrayListUnmanaged([]const u8){};
+                var dirs = std.ArrayListUnmanaged([]const u8).empty;
                 errdefer {
                     for (dirs.items) |d| self.allocator.free(d);
                     dirs.deinit(self.allocator);
@@ -148,17 +149,22 @@ pub const RuntimeConfig = struct {
     /// Apply environment variable overrides.
     fn loadEnvironmentOverrides(self: *RuntimeConfig) void {
         // KLAR_STD_PATH overrides std_path from klar.json
-        if (std.posix.getenv("KLAR_STD_PATH")) |path| {
-            // Environment variable strings are static, no need to allocate
+        if (compat.getEnvVarOwned(self.allocator, "KLAR_STD_PATH")) |path| {
+            // Ownership transferred to `owned_strings` for deinit cleanup.
+            self.owned_strings.append(self.allocator, path) catch {
+                self.allocator.free(path);
+                return;
+            };
             self.std_path = path;
-        }
+        } else |_| {}
 
         // KLAR_VERBOSE overrides verbose setting
-        if (std.posix.getenv("KLAR_VERBOSE")) |val| {
+        if (compat.getEnvVarOwned(self.allocator, "KLAR_VERBOSE")) |val| {
+            defer self.allocator.free(val);
             self.verbose = std.mem.eql(u8, val, "1") or
                 std.mem.eql(u8, val, "true") or
                 std.mem.eql(u8, val, "yes");
-        }
+        } else |_| {}
     }
 
     /// Get the standard library path, returning null if not configured.
@@ -206,7 +212,7 @@ test "RuntimeConfig parseConfigJson" {
         .project_root = ".",
         .source_dirs = &.{},
         .verbose = false,
-        .owned_strings = .{},
+        .owned_strings = .empty,
     };
     defer {
         // Free source_dirs slice if allocated
@@ -240,7 +246,7 @@ test "RuntimeConfig handles invalid json gracefully" {
         .project_root = ".",
         .source_dirs = &.{},
         .verbose = false,
-        .owned_strings = .{},
+        .owned_strings = .empty,
     };
     defer cfg.deinit();
 
@@ -256,7 +262,7 @@ test "RuntimeConfig handles empty json" {
         .project_root = ".",
         .source_dirs = &.{},
         .verbose = false,
-        .owned_strings = .{},
+        .owned_strings = .empty,
     };
     defer config.deinit();
 

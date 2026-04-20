@@ -124,9 +124,10 @@ test "tools/call with unknown tool returns error" {
     var router = Router.init(alloc);
     defer router.deinit();
 
-    var params = std.json.ObjectMap.init(alloc);
-    try params.put("name", .{ .string = "unknown_tool" });
-    try params.put("arguments", .{ .object = std.json.ObjectMap.init(alloc) });
+    var params: std.json.ObjectMap = .empty;
+    try params.put(alloc, "name", .{ .string = "unknown_tool" });
+    const empty_args: std.json.ObjectMap = .empty;
+    try params.put(alloc, "arguments", .{ .object = empty_args });
 
     const response = try router.dispatch("tools/call", .{ .object = params });
 
@@ -145,7 +146,7 @@ test "RuntimeConfig parses valid JSON" {
         .project_root = ".",
         .source_dirs = &.{},
         .verbose = false,
-        .owned_strings = .{},
+        .owned_strings = .empty,
     };
     defer runtime_config.deinit();
 

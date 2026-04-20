@@ -4,6 +4,7 @@
 //! position, returning all locations where the symbol is used in the codebase.
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 const parser = @import("compiler").parser;
 const checker = @import("compiler").checker;
@@ -119,7 +120,7 @@ pub fn execute(allocator: Allocator, params: ?std.json.Value) !std.json.Value {
     // Get the source code
     const source = if (content) |c| c else blk: {
         // Read from file
-        const file_content = std.fs.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
+        const file_content = compat.cwd().readFileAlloc(allocator, file_path, 10 * 1024 * 1024) catch |err| {
             var buf: [256]u8 = undefined;
             const msg = std.fmt.bufPrint(&buf, "Failed to read file '{s}': {s}", .{ file_path, @errorName(err) }) catch "Failed to read file";
             return makeErrorResponse(allocator, msg);
@@ -269,7 +270,7 @@ fn buildReferencesResponse(
     // Collect references to this symbol by matching symbol name
     // Note: In a full implementation, we'd use the symbol table's reference tracking.
     // For now, we'll look through checker's recorded information.
-    var refs_list = std.ArrayListUnmanaged(ReferencesResult.Reference){};
+    var refs_list = std.ArrayListUnmanaged(ReferencesResult.Reference).empty;
     defer refs_list.deinit(allocator);
 
     // Look through scopes for any references to this symbol
@@ -352,55 +353,55 @@ fn buildReferencesResponse(
 
     // Build MCP response
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
 
     const text_copy = try allocator.dupe(u8, text_buf[0..text_len]);
-    try content_obj.put("text", .{ .string = text_copy });
+    try content_obj.put(allocator, "text", .{ .string = text_copy });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = false });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = false });
 
     // Add structured data
-    var data_obj = std.json.ObjectMap.init(allocator);
-    try data_obj.put("found", .{ .bool = true });
+    var data_obj = @as(std.json.ObjectMap, .empty);
+    try data_obj.put(allocator, "found", .{ .bool = true });
 
     const name_copy = try allocator.dupe(u8, symbol.name);
-    try data_obj.put("symbol_name", .{ .string = name_copy });
-    try data_obj.put("total_count", .{ .integer = @intCast(total_count) });
-    try data_obj.put("include_definition", .{ .bool = include_definition });
+    try data_obj.put(allocator, "symbol_name", .{ .string = name_copy });
+    try data_obj.put(allocator, "total_count", .{ .integer = @intCast(total_count) });
+    try data_obj.put(allocator, "include_definition", .{ .bool = include_definition });
 
     // Build references array
     var refs_arr = std.json.Array.init(allocator);
     for (refs_list.items) |ref| {
-        var ref_obj = std.json.ObjectMap.init(allocator);
-        try ref_obj.put("file", .{ .string = ref.file });
-        try ref_obj.put("line", .{ .integer = @intCast(ref.line) });
-        try ref_obj.put("column", .{ .integer = @intCast(ref.column) });
-        try ref_obj.put("kind", .{ .string = ref.kind });
+        var ref_obj = @as(std.json.ObjectMap, .empty);
+        try ref_obj.put(allocator, "file", .{ .string = ref.file });
+        try ref_obj.put(allocator, "line", .{ .integer = @intCast(ref.line) });
+        try ref_obj.put(allocator, "column", .{ .integer = @intCast(ref.column) });
+        try ref_obj.put(allocator, "kind", .{ .string = ref.kind });
         if (ref.context) |ctx| {
-            try ref_obj.put("context", .{ .string = ctx });
+            try ref_obj.put(allocator, "context", .{ .string = ctx });
         } else {
-            try ref_obj.put("context", .null);
+            try ref_obj.put(allocator, "context", .null);
         }
         try refs_arr.append(.{ .object = ref_obj });
     }
-    try data_obj.put("references", .{ .array = refs_arr });
+    try data_obj.put(allocator, "references", .{ .array = refs_arr });
 
     // Add definition if requested
     if (definition_info) |def| {
-        var def_obj = std.json.ObjectMap.init(allocator);
-        try def_obj.put("file", .{ .string = def.file });
-        try def_obj.put("line", .{ .integer = @intCast(def.line) });
-        try def_obj.put("column", .{ .integer = @intCast(def.column) });
-        try data_obj.put("definition", .{ .object = def_obj });
+        var def_obj = @as(std.json.ObjectMap, .empty);
+        try def_obj.put(allocator, "file", .{ .string = def.file });
+        try def_obj.put(allocator, "line", .{ .integer = @intCast(def.line) });
+        try def_obj.put(allocator, "column", .{ .integer = @intCast(def.column) });
+        try data_obj.put(allocator, "definition", .{ .object = def_obj });
     } else {
-        try data_obj.put("definition", .null);
+        try data_obj.put(allocator, "definition", .null);
     }
 
-    try outer.put("data", .{ .object = data_obj });
+    try outer.put(allocator, "data", .{ .object = data_obj });
 
     return .{ .object = outer };
 }
@@ -417,43 +418,43 @@ fn buildNoSymbolResponse(
     }) catch "No symbol found";
 
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
 
     const text_copy = try allocator.dupe(u8, text);
-    try content_obj.put("text", .{ .string = text_copy });
+    try content_obj.put(allocator, "text", .{ .string = text_copy });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = false });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = false });
 
     // Add structured data
-    var data_obj = std.json.ObjectMap.init(allocator);
-    try data_obj.put("found", .{ .bool = false });
-    try data_obj.put("file", .{ .string = file_path });
-    try data_obj.put("line", .{ .integer = @intCast(line) });
-    try data_obj.put("column", .{ .integer = @intCast(column) });
+    var data_obj = @as(std.json.ObjectMap, .empty);
+    try data_obj.put(allocator, "found", .{ .bool = false });
+    try data_obj.put(allocator, "file", .{ .string = file_path });
+    try data_obj.put(allocator, "line", .{ .integer = @intCast(line) });
+    try data_obj.put(allocator, "column", .{ .integer = @intCast(column) });
 
     // Empty references array
     const refs_arr = std.json.Array.init(allocator);
-    try data_obj.put("references", .{ .array = refs_arr });
+    try data_obj.put(allocator, "references", .{ .array = refs_arr });
 
-    try outer.put("data", .{ .object = data_obj });
+    try outer.put(allocator, "data", .{ .object = data_obj });
 
     return .{ .object = outer };
 }
 
 fn makeErrorResponse(allocator: Allocator, message: []const u8) !std.json.Value {
     var content_arr = std.json.Array.init(allocator);
-    var content_obj = std.json.ObjectMap.init(allocator);
-    try content_obj.put("type", .{ .string = "text" });
-    try content_obj.put("text", .{ .string = message });
+    var content_obj = @as(std.json.ObjectMap, .empty);
+    try content_obj.put(allocator, "type", .{ .string = "text" });
+    try content_obj.put(allocator, "text", .{ .string = message });
     try content_arr.append(.{ .object = content_obj });
 
-    var outer = std.json.ObjectMap.init(allocator);
-    try outer.put("content", .{ .array = content_arr });
-    try outer.put("isError", .{ .bool = true });
+    var outer = @as(std.json.ObjectMap, .empty);
+    try outer.put(allocator, "content", .{ .array = content_arr });
+    try outer.put(allocator, "isError", .{ .bool = true });
 
     return .{ .object = outer };
 }
@@ -475,9 +476,9 @@ test "execute with missing line parameter" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
     // Missing line and column
 
     const result = try execute(allocator, .{ .object = params });
@@ -491,11 +492,11 @@ test "execute with valid position - no symbol" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 100 }); // Way past end
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 100 }); // Way past end
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -516,11 +517,11 @@ test "execute with valid position - symbol found" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 5 }); // Position of 'x'
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 5 }); // Position of 'x'
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -548,12 +549,12 @@ test "execute with include_definition false" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string = "let x = 42" });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 5 }); // Position of 'x'
-    try params.put("include_definition", .{ .bool = false });
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string = "let x = 42" });
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 5 }); // Position of 'x'
+    try params.put(allocator, "include_definition", .{ .bool = false });
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;
@@ -573,15 +574,15 @@ test "execute with function declaration" {
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    var params = std.json.ObjectMap.init(allocator);
-    try params.put("file", .{ .string = "test.kl" });
-    try params.put("content", .{ .string =
+    var params = @as(std.json.ObjectMap, .empty);
+    try params.put(allocator, "file", .{ .string = "test.kl" });
+    try params.put(allocator, "content", .{ .string =
         \\fn add(a: i32, b: i32) -> i32 {
         \\    a + b
         \\}
     });
-    try params.put("line", .{ .integer = 1 });
-    try params.put("column", .{ .integer = 4 }); // Position of 'add'
+    try params.put(allocator, "line", .{ .integer = 1 });
+    try params.put(allocator, "column", .{ .integer = 4 }); // Position of 'add'
 
     const result = try execute(allocator, .{ .object = params });
     const obj = result.object;

@@ -14,7 +14,7 @@ pub fn parse(allocator: Allocator, input: []const u8) !std.json.Parsed(Value) {
 /// Serializes a JSON Value to a string.
 /// Caller owns returned memory.
 pub fn stringifyValue(allocator: Allocator, value: Value) ![]u8 {
-    var list = std.ArrayListUnmanaged(u8){};
+    var list = std.ArrayListUnmanaged(u8).empty;
     errdefer list.deinit(allocator);
     try writeValue(allocator, &list, value);
     return list.toOwnedSlice(allocator);
@@ -94,32 +94,32 @@ pub const ObjectBuilder = struct {
     pub fn init(allocator: Allocator) ObjectBuilder {
         return .{
             .allocator = allocator,
-            .map = std.json.ObjectMap.init(allocator),
+            .map = .empty,
         };
     }
 
     pub fn deinit(self: *ObjectBuilder) void {
-        self.map.deinit();
+        self.map.deinit(self.allocator);
     }
 
     pub fn put(self: *ObjectBuilder, key: []const u8, value: Value) !void {
-        try self.map.put(key, value);
+        try self.map.put(self.allocator, key, value);
     }
 
     pub fn putString(self: *ObjectBuilder, key: []const u8, value: []const u8) !void {
-        try self.map.put(key, .{ .string = value });
+        try self.map.put(self.allocator, key, .{ .string = value });
     }
 
     pub fn putInt(self: *ObjectBuilder, key: []const u8, value: i64) !void {
-        try self.map.put(key, .{ .integer = value });
+        try self.map.put(self.allocator, key, .{ .integer = value });
     }
 
     pub fn putBool(self: *ObjectBuilder, key: []const u8, value: bool) !void {
-        try self.map.put(key, .{ .bool = value });
+        try self.map.put(self.allocator, key, .{ .bool = value });
     }
 
     pub fn putNull(self: *ObjectBuilder, key: []const u8) !void {
-        try self.map.put(key, .null);
+        try self.map.put(self.allocator, key, .null);
     }
 
     pub fn build(self: *ObjectBuilder) Value {
@@ -174,9 +174,9 @@ test "parse" {
 test "stringifyValue" {
     const allocator = std.testing.allocator;
 
-    var obj = std.json.ObjectMap.init(allocator);
-    defer obj.deinit();
-    try obj.put("test", .{ .bool = true });
+    var obj: std.json.ObjectMap = .empty;
+    defer obj.deinit(allocator);
+    try obj.put(allocator, "test", .{ .bool = true });
 
     const str = try stringifyValue(allocator, .{ .object = obj });
     defer allocator.free(str);

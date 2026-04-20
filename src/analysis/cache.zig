@@ -5,6 +5,7 @@
 //! the same file. Cache entries are keyed by file content hash.
 
 const std = @import("std");
+const compat = @import("compat");
 const Allocator = std.mem.Allocator;
 const parser_mod = @import("compiler").parser;
 const checker_mod = @import("compiler").checker;
@@ -86,7 +87,7 @@ pub const DocumentCache = struct {
     pub fn initWithCapacity(allocator: Allocator, max_entries: usize) DocumentCache {
         return .{
             .allocator = allocator,
-            .entries = .{},
+            .entries = .empty,
             .max_entries = max_entries,
             .stats = .{
                 .hits = 0,
@@ -182,7 +183,7 @@ pub const DocumentCache = struct {
             .file_path = owned_path,
             .ast = ast,
             .checker = null,
-            .created_at = std.time.timestamp(),
+            .created_at = compat.timestamp(),
             .access_count = 1,
         };
 
@@ -255,7 +256,7 @@ pub const DocumentCache = struct {
             .file_path = owned_path,
             .ast = ast,
             .checker = checker,
-            .created_at = std.time.timestamp(),
+            .created_at = compat.timestamp(),
             .access_count = 1,
         };
 
